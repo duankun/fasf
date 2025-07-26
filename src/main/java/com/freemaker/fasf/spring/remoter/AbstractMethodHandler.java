@@ -1,0 +1,67 @@
+package com.freemaker.fasf.spring.remoter;
+
+import com.freemaker.fasf.annotation.GetParam;
+import com.freemaker.fasf.http.*;
+import com.freemaker.fasf.spring.context.RequestContext;
+import org.springframework.core.MethodParameter;
+
+import java.lang.reflect.Method;
+import java.util.Map;
+
+public class AbstractMethodHandler {
+    private final HttpClient httpClient;
+    private final RequestContext requestContext;
+
+    public AbstractMethodHandler(RequestContext requestContext) {
+        this(requestContext, null);
+    }
+
+    public AbstractMethodHandler(RequestContext requestContext, HttpClient httpClient) {
+        this.requestContext = requestContext;
+        this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
+    }
+
+    public <T> T post(Class<T> returnType, String path, Object body) {
+        PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
+                .url(requestContext.getEndpoint() + path)
+                .method(HttpMethod.POST)
+                .body(body)
+                .build();
+        requestContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
+        System.out.println(request);
+        return httpClient.post(returnType, request);
+    }
+
+    public Map<String, String> resolveQueryParameters(Method method, Object[] args) {
+        Map<String, String> queryParameters = new java.util.HashMap<>();
+        for (int i = 0; i < args.length; i++) {
+            MethodParameter methodParameter = new MethodParameter(method, i);
+            if (methodParameter.hasParameterAnnotation(GetParam.class)) {
+                GetParam parameterAnnotation = methodParameter.getParameterAnnotation(GetParam.class);
+                if (parameterAnnotation != null) {
+                    queryParameters.put(parameterAnnotation.value(), args[i].toString());
+                }
+            }
+        }
+        return queryParameters;
+    }
+
+    public String joinQueryParameters(Map<String, String> queryParameters) {
+        StringBuilder query = new StringBuilder();
+        for (Map.Entry<String, String> entry : queryParameters.entrySet()) {
+            query.append(entry.getKey()).append("=").append(entry.getValue());
+        }
+        return query.toString();
+    }
+
+    public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
+        GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
+                .url(requestContext.getEndpoint() + path + "?" + joinQueryParameters(queryParameters))
+                .method(HttpMethod.GET)
+                .queryParameters(queryParameters)
+                .build();
+        requestContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
+        System.out.println(request);
+        return httpClient.get(returnType, request);
+    }
+}
