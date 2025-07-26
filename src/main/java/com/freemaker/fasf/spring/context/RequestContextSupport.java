@@ -10,16 +10,16 @@ import java.util.Set;
 public class RequestContextSupport {
     @Autowired
     private List<RequestInterceptor> interceptors;
-    private RequestContext requestContext;
+    private RemoterContext remoterContext;
 
-    public RequestContext getRequestContext() {
-        return requestContext;
+    public RemoterContext getRemoterContext() {
+        return remoterContext;
     }
 
     public void initRequestContext(Remoter remoter) {
-        requestContext = new RequestContext();
-        requestContext.setEndpoint(remoter.endpoint());
+        remoterContext = new RemoterContext();
+        remoterContext.setEndpoint(remoter.endpoint());
         Set<Class<? extends RequestInterceptor>> specificInterceptors = Set.of(remoter.interceptors());
-        requestContext.setInterceptors(interceptors.stream().filter(interceptor -> specificInterceptors.contains(interceptor.getClass())).toList());
+        remoterContext.setInterceptors(interceptors.stream().filter(interceptor -> specificInterceptors.contains(interceptor.getClass())).toList());
     }
 }

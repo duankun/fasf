@@ -1,7 +1,7 @@
 package com.freemaker.fasf.spring.remoter;
 
 import com.freemaker.fasf.http.HttpClient;
-import com.freemaker.fasf.spring.context.RequestContext;
+import com.freemaker.fasf.spring.context.RemoterContext;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -13,10 +13,10 @@ public class RemoterInvocationHandler implements InvocationHandler {
     private final Class<?> remoterInterface;
     private final Map<Method, MethodHandler> methodHandlers = new HashMap<>();
 
-    public RemoterInvocationHandler(Class<?> remoterInterface, RequestContext requestContext, HttpClient httpClient) {
+    public RemoterInvocationHandler(Class<?> remoterInterface, RemoterContext remoterContext, HttpClient httpClient) {
         this.remoterInterface = remoterInterface;
         Method[] declaredMethods = remoterInterface.getDeclaredMethods();
-        Arrays.stream(declaredMethods).forEach(method -> methodHandlers.put(method, new MethodHandler(method, requestContext, httpClient)));
+        Arrays.stream(declaredMethods).forEach(method -> methodHandlers.put(method, new MethodHandler(method, remoterContext, httpClient)));
     }
 
     @Override

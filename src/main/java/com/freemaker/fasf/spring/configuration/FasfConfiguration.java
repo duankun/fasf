@@ -1,4 +1,4 @@
-package com.freemaker.fasf.configuration;
+package com.freemaker.fasf.spring.configuration;
 
 import com.freemaker.fasf.spring.annotation.RemoterScan;
 import org.springframework.context.annotation.Configuration;

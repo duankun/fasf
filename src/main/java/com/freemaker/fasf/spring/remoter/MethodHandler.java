@@ -3,7 +3,7 @@ package com.freemaker.fasf.spring.remoter;
 import com.freemaker.fasf.annotation.RequestLine;
 import com.freemaker.fasf.http.HttpClient;
 import com.freemaker.fasf.http.HttpMethod;
-import com.freemaker.fasf.spring.context.RequestContext;
+import com.freemaker.fasf.spring.context.RemoterContext;
 
 import java.lang.reflect.Method;
 
@@ -12,8 +12,8 @@ public class MethodHandler extends AbstractMethodHandler {
     private final Class<?> returnType;
     private final RequestLine requestLine;
 
-    public MethodHandler(Method method, RequestContext requestContext, HttpClient httpClient) {
-        super(requestContext, httpClient);
+    public MethodHandler(Method method, RemoterContext remoterContext, HttpClient httpClient) {
+        super(remoterContext, httpClient);
         this.method = method;
         this.returnType = method.getReturnType();
         this.requestLine = method.getAnnotation(RequestLine.class);

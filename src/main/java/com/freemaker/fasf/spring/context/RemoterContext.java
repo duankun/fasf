@@ -4,7 +4,7 @@ import com.freemaker.fasf.interceptor.RequestInterceptor;
 
 import java.util.List;
 
-public class RequestContext {
+public class RemoterContext {
     private String endpoint;
     private List<RequestInterceptor> interceptors;
 

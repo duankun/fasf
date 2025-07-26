@@ -2,7 +2,7 @@ package com.freemaker.fasf.spring.remoter;
 
 import com.freemaker.fasf.annotation.GetParam;
 import com.freemaker.fasf.http.*;
-import com.freemaker.fasf.spring.context.RequestContext;
+import com.freemaker.fasf.spring.context.RemoterContext;
 import org.springframework.core.MethodParameter;
 
 import java.lang.reflect.Method;
@@ -10,24 +10,24 @@ import java.util.Map;
 
 public class AbstractMethodHandler {
     private final HttpClient httpClient;
-    private final RequestContext requestContext;
+    private final RemoterContext remoterContext;
 
-    public AbstractMethodHandler(RequestContext requestContext) {
-        this(requestContext, null);
+    public AbstractMethodHandler(RemoterContext remoterContext) {
+        this(remoterContext, null);
     }
 
-    public AbstractMethodHandler(RequestContext requestContext, HttpClient httpClient) {
-        this.requestContext = requestContext;
+    public AbstractMethodHandler(RemoterContext remoterContext, HttpClient httpClient) {
+        this.remoterContext = remoterContext;
         this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
     }
 
     public <T> T post(Class<T> returnType, String path, Object body) {
         PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
-                .url(requestContext.getEndpoint() + path)
+                .url(remoterContext.getEndpoint() + path)
                 .method(HttpMethod.POST)
                 .body(body)
                 .build();
-        requestContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
+        remoterContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
         System.out.println(request);
         return httpClient.post(returnType, request);
     }
@@ -56,11 +56,11 @@ public class AbstractMethodHandler {
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
-                .url(requestContext.getEndpoint() + path + "?" + joinQueryParameters(queryParameters))
+                .url(remoterContext.getEndpoint() + path + "?" + joinQueryParameters(queryParameters))
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
-        requestContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
+        remoterContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
         System.out.println(request);
         return httpClient.get(returnType, request);
     }

@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.lang.reflect.Proxy;
 
 /**
- *
- * @param <T>
+ * @author: duankun
+ * @date: 2020/5/27
  */
 public class RemoterFactoryBean<T> extends RequestContextSupport implements FactoryBean<T>, InitializingBean {
     private final Class<T> remoterInterface;
@@ -24,7 +24,7 @@ public class RemoterFactoryBean<T> extends RequestContextSupport implements Fact
 
     @Override
     public T getObject() throws Exception {
-        return (T) Proxy.newProxyInstance(remoterInterface.getClassLoader(), new Class[]{remoterInterface}, new RemoterInvocationHandler(remoterInterface, super.getRequestContext(), httpClient));
+        return (T) Proxy.newProxyInstance(remoterInterface.getClassLoader(), new Class[]{remoterInterface}, new RemoterInvocationHandler(remoterInterface, super.getRemoterContext(), httpClient));
     }
 
     @Override
