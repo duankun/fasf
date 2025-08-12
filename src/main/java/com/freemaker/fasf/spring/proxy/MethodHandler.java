@@ -9,21 +9,21 @@ import java.lang.reflect.Method;
 
 public class MethodHandler extends AbstractMethodHandler {
     private final Class<?> returnType;
-    private final Request request;
+    private final HttpMethod method;
+    private final String path;
 
     public MethodHandler(Method method, RemoterContext remoterContext, HttpClient httpClient) {
-        super(method,remoterContext, httpClient);
+        super(method, remoterContext, httpClient);
         this.returnType = method.getReturnType();
-        this.request = method.getAnnotation(Request.class);
+        Request request = method.getAnnotation(Request.class);
+        this.method = request.method();
+        this.path = request.path();
     }
 
     public Object invoke(Object[] args) {
-        Object result = null;
-        if (request.method() == HttpMethod.POST) {
-            result = super.post(returnType, request.path(), args[0]);
-        } else if(request.method() == HttpMethod.GET){
-            result = super.get(returnType, request.path(), super.resolveQueryParameters(args));
-        }
-        return result;
+        return switch (method) {
+            case POST -> super.post(returnType, path, args[0]);
+            case GET -> super.get(returnType, path, super.resolveQueryParameters(args));
+        };
     }
 }
