@@ -2,11 +2,14 @@ package com.freemaker.fasf.spring.context;
 
 import com.freemaker.fasf.interceptor.RequestInterceptor;
 
-import java.util.List;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class RemoterContext {
     private String endpoint;
-    private List<RequestInterceptor> interceptors;
+    private Map<Method, Set<RequestInterceptor>> interceptors = new HashMap<>();
 
     public String getEndpoint() {
         return endpoint;
@@ -16,11 +19,15 @@ public class RemoterContext {
         this.endpoint = endpoint;
     }
 
-    public List<RequestInterceptor> getInterceptors() {
-        return interceptors;
+    public Set<RequestInterceptor> getInterceptors(Method method) {
+        return interceptors.get(method);
     }
 
-    public void setInterceptors(List<RequestInterceptor> interceptors) {
+    public void addInterceptors(Method method, Set<RequestInterceptor> interceptors) {
+        this.interceptors.put(method, interceptors);
+    }
+
+    public void setInterceptors(Map<Method, Set<RequestInterceptor>> interceptors) {
         this.interceptors = interceptors;
     }
 }

@@ -14,4 +14,9 @@ public class RequestBodyEncryptInterceptor implements RequestInterceptor{
     public void intercept(HttpRequest request) {
 
     }
+
+    @Override
+    public int getOrder() {
+        return 1;
+    }
 }

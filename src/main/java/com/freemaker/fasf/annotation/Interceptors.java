@@ -1,0 +1,20 @@
+package com.freemaker.fasf.annotation;
+
+import com.freemaker.fasf.interceptor.RequestInterceptor;
+import org.springframework.core.annotation.AliasFor;
+
+import java.lang.annotation.*;
+
+/**
+ * @author duankun
+ * @date 2025/8/12
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.METHOD})
+@Documented
+public @interface Interceptors {
+    @AliasFor("interceptors")
+    Class<? extends RequestInterceptor>[] value() default {};
+    @AliasFor("value")
+    Class<? extends RequestInterceptor>[] interceptors() default {};
+}

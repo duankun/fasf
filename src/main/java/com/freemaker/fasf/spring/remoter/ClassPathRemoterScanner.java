@@ -1,5 +1,6 @@
 package com.freemaker.fasf.spring.remoter;
 
+import com.freemaker.fasf.annotation.Interceptors;
 import com.freemaker.fasf.annotation.Remoter;
 import com.freemaker.fasf.interceptor.RequestInterceptor;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
@@ -10,8 +11,12 @@ import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.lang.NonNull;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -47,11 +52,22 @@ public class ClassPathRemoterScanner extends ClassPathBeanDefinitionScanner {
             }
             Remoter annotation = beanClass.getAnnotation(Remoter.class);
             Collections.addAll(interceptors, annotation.interceptors());
+            Method[] declaredMethods = beanClass.getDeclaredMethods();
+            Assert.notEmpty(declaredMethods, "No methods found in remoter interface " + beanClass.getName());
+            Arrays.stream(declaredMethods).forEach(method -> {
+                Interceptors methodAnnotation = method.getAnnotation(Interceptors.class);
+                if (methodAnnotation != null) {
+                    Class<? extends RequestInterceptor>[] methodInterceptors = methodAnnotation.interceptors();
+                    Collections.addAll(interceptors, methodInterceptors);
+                }
+            });
             beanDefinitionHolder.getBeanDefinition().setBeanClassName(RemoterFactoryBean.class.getName());
             beanDefinitionHolder.getBeanDefinition().getConstructorArgumentValues().addGenericArgumentValue(beanClass);
             registry.registerBeanDefinition(beanDefinitionHolder.getBeanName(), beanDefinitionHolder.getBeanDefinition());
         });
-        interceptors.forEach(interceptor -> registry.registerBeanDefinition(interceptor.getName(), new RootBeanDefinition(interceptor)));
+        if (!CollectionUtils.isEmpty(interceptors)) {
+            interceptors.forEach(interceptor -> registry.registerBeanDefinition(interceptor.getName(), new RootBeanDefinition(interceptor)));
+        }
     }
 
     @Override

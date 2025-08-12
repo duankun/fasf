@@ -1,6 +1,5 @@
 package com.freemaker.fasf.spring.remoter;
 
-import com.freemaker.fasf.annotation.Remoter;
 import com.freemaker.fasf.http.HttpClient;
 import com.freemaker.fasf.spring.context.RequestContextSupport;
 import org.springframework.beans.factory.FactoryBean;
@@ -15,6 +14,9 @@ import java.lang.reflect.Proxy;
  */
 public class RemoterFactoryBean<T> extends RequestContextSupport implements FactoryBean<T>, InitializingBean {
     private final Class<T> remoterInterface;
+    /**
+     * if there is no {@link com.freemaker.fasf.http.HttpClient} configured, a default one {@link com.freemaker.fasf.http.HttpClient.DefaultHttpClient} will be used
+     */
     @Autowired(required = false)
     private HttpClient httpClient;
 
@@ -34,6 +36,6 @@ public class RemoterFactoryBean<T> extends RequestContextSupport implements Fact
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        super.initRequestContext(remoterInterface.getAnnotation(Remoter.class));
+        super.initRequestContext(remoterInterface);
     }
 }

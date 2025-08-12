@@ -9,14 +9,16 @@ import java.lang.reflect.Method;
 import java.util.Map;
 
 public class AbstractMethodHandler {
+    private final Method method;
     private final HttpClient httpClient;
     private final RemoterContext remoterContext;
 
-    public AbstractMethodHandler(RemoterContext remoterContext) {
-        this(remoterContext, null);
+    public AbstractMethodHandler(Method method, RemoterContext remoterContext) {
+        this(method,remoterContext, null);
     }
 
-    public AbstractMethodHandler(RemoterContext remoterContext, HttpClient httpClient) {
+    public AbstractMethodHandler(Method method,RemoterContext remoterContext, HttpClient httpClient) {
+        this.method = method;
         this.remoterContext = remoterContext;
         this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
     }
@@ -27,12 +29,12 @@ public class AbstractMethodHandler {
                 .method(HttpMethod.POST)
                 .body(body)
                 .build();
-        remoterContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
+        remoterContext.getInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
         System.out.println(request);
         return httpClient.post(returnType, request);
     }
 
-    public Map<String, String> resolveQueryParameters(Method method, Object[] args) {
+    public Map<String, String> resolveQueryParameters(Object[] args) {
         Map<String, String> queryParameters = new java.util.HashMap<>();
         for (int i = 0; i < args.length; i++) {
             MethodParameter methodParameter = new MethodParameter(method, i);
@@ -60,7 +62,7 @@ public class AbstractMethodHandler {
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
-        remoterContext.getInterceptors().forEach(interceptor -> interceptor.intercept(request));
+        remoterContext.getInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
         System.out.println(request);
         return httpClient.get(returnType, request);
     }
