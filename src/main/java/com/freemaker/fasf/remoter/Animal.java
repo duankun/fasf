@@ -1,4 +1,4 @@
-package com.freemaker.fasf.spring.remoter;
+package com.freemaker.fasf.remoter;
 
 import com.freemaker.fasf.annotation.GetParam;
 import com.freemaker.fasf.annotation.Interceptors;

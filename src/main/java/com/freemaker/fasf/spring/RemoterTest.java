@@ -1,6 +1,6 @@
 package com.freemaker.fasf.spring;
 
-import com.freemaker.fasf.spring.remoter.Animal;
+import com.freemaker.fasf.remoter.Animal;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
