@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface RequestLine {
+public @interface Request {
     String path() default "";
     HttpMethod method() default HttpMethod.POST;
 }
