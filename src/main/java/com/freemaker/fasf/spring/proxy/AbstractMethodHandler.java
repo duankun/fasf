@@ -2,18 +2,21 @@ package com.freemaker.fasf.spring.proxy;
 
 import com.freemaker.fasf.annotation.GetParam;
 import com.freemaker.fasf.http.*;
+import com.freemaker.fasf.interceptor.RequestInterceptor;
 import com.freemaker.fasf.spring.context.RemoterContext;
 import org.springframework.core.MethodParameter;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Set;
 
 public class AbstractMethodHandler {
     private final Method method;
     private final HttpClient httpClient;
     private final RemoterContext remoterContext;
 
-    public AbstractMethodHandler(Method method,RemoterContext remoterContext, HttpClient httpClient) {
+    public AbstractMethodHandler(Method method, RemoterContext remoterContext, HttpClient httpClient) {
         this.method = method;
         this.remoterContext = remoterContext;
         this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
@@ -25,7 +28,10 @@ public class AbstractMethodHandler {
                 .method(HttpMethod.POST)
                 .body(body)
                 .build();
-        remoterContext.getRequestInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
+        Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
+        if (!CollectionUtils.isEmpty(requestInterceptors)) {
+            requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
+        }
         System.out.println(request);
         return httpClient.post(returnType, request);
     }
@@ -58,7 +64,10 @@ public class AbstractMethodHandler {
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
-        remoterContext.getRequestInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
+        Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
+        if (!CollectionUtils.isEmpty(requestInterceptors)) {
+            requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
+        }
         System.out.println(request);
         return httpClient.get(returnType, request);
     }

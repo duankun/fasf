@@ -1,6 +1,7 @@
 package com.freemaker.fasf.spring.context;
 
 import com.freemaker.fasf.interceptor.RequestInterceptor;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -24,7 +25,9 @@ public class RemoterContext {
     }
 
     public void addRequestInterceptors(Method method, Set<RequestInterceptor> interceptors) {
-        this.requestInterceptors.put(method, interceptors);
+        if (!CollectionUtils.isEmpty(interceptors)) {
+            this.requestInterceptors.put(method, interceptors);
+        }
     }
 
 }
