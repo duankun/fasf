@@ -16,6 +16,6 @@ public class RemoterTest implements ApplicationContextAware {
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 //        String result = animal.remote("1234");
 //        System.out.println(result);
-        String getResult = animal.get("duankun");
+        String getResult = animal.remote("duankun");
     }
 }
