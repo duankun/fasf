@@ -2,6 +2,7 @@ package com.freemaker.fasf.spring.remoter;
 
 import com.freemaker.fasf.http.HttpClient;
 import com.freemaker.fasf.spring.context.RemoterContext;
+import org.springframework.util.Assert;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -16,6 +17,7 @@ public class RemoterInvocationHandler implements InvocationHandler {
     public RemoterInvocationHandler(Class<?> remoterInterface, RemoterContext remoterContext, HttpClient httpClient) {
         this.remoterInterface = remoterInterface;
         Method[] declaredMethods = remoterInterface.getDeclaredMethods();
+        Assert.notEmpty(declaredMethods, "No methods found in remoter interface " + remoterInterface.getName());
         Arrays.stream(declaredMethods).forEach(method -> methodHandlers.put(method, new MethodHandler(method, remoterContext, httpClient)));
     }
 
@@ -25,7 +27,7 @@ public class RemoterInvocationHandler implements InvocationHandler {
             return "RemoterProxy for " + remoterInterface.getName();
         }
         MethodHandler methodHandler = methodHandlers.get(method);
-        assert methodHandler != null;
+        Assert.notNull(methodHandler, "No method handler found for " + method.getName());
         return methodHandler.invoke(args);
     }
 }

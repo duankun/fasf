@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class RequestContextSupport {
     @Autowired
     private List<RequestInterceptor> interceptors;
-    private RemoterContext remoterContext = new RemoterContext();
+    private final RemoterContext remoterContext = new RemoterContext();
 
     public RemoterContext getRemoterContext() {
         return remoterContext;
@@ -37,7 +37,7 @@ public class RequestContextSupport {
                 Set<RequestInterceptor> methodInterceptors = interceptors.stream().filter(interceptor -> specificMethodInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
                 classInterceptors.addAll(methodInterceptors);
             }
-            remoterContext.addInterceptors(method, classInterceptors);
+            remoterContext.addRequestInterceptors(method, classInterceptors);
         });
     }
 }

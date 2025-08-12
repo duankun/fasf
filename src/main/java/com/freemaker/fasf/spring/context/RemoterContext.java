@@ -9,7 +9,7 @@ import java.util.Set;
 
 public class RemoterContext {
     private String endpoint;
-    private Map<Method, Set<RequestInterceptor>> interceptors = new HashMap<>();
+    private final Map<Method, Set<RequestInterceptor>> requestInterceptors = new HashMap<>();
 
     public String getEndpoint() {
         return endpoint;
@@ -19,15 +19,12 @@ public class RemoterContext {
         this.endpoint = endpoint;
     }
 
-    public Set<RequestInterceptor> getInterceptors(Method method) {
-        return interceptors.get(method);
+    public Set<RequestInterceptor> getRequestInterceptors(Method method) {
+        return requestInterceptors.get(method);
     }
 
-    public void addInterceptors(Method method, Set<RequestInterceptor> interceptors) {
-        this.interceptors.put(method, interceptors);
+    public void addRequestInterceptors(Method method, Set<RequestInterceptor> interceptors) {
+        this.requestInterceptors.put(method, interceptors);
     }
 
-    public void setInterceptors(Map<Method, Set<RequestInterceptor>> interceptors) {
-        this.interceptors = interceptors;
-    }
 }

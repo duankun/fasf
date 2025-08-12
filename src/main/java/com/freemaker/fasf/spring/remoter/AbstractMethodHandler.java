@@ -13,10 +13,6 @@ public class AbstractMethodHandler {
     private final HttpClient httpClient;
     private final RemoterContext remoterContext;
 
-    public AbstractMethodHandler(Method method, RemoterContext remoterContext) {
-        this(method,remoterContext, null);
-    }
-
     public AbstractMethodHandler(Method method,RemoterContext remoterContext, HttpClient httpClient) {
         this.method = method;
         this.remoterContext = remoterContext;
@@ -29,7 +25,7 @@ public class AbstractMethodHandler {
                 .method(HttpMethod.POST)
                 .body(body)
                 .build();
-        remoterContext.getInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
+        remoterContext.getRequestInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
         System.out.println(request);
         return httpClient.post(returnType, request);
     }
@@ -62,7 +58,7 @@ public class AbstractMethodHandler {
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
-        remoterContext.getInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
+        remoterContext.getRequestInterceptors(method).forEach(interceptor -> interceptor.intercept(request));
         System.out.println(request);
         return httpClient.get(returnType, request);
     }
