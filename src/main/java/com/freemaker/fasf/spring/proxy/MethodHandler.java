@@ -24,6 +24,7 @@ public class MethodHandler extends AbstractMethodHandler {
         return switch (method) {
             case POST -> super.post(returnType, path, args[0]);
             case GET -> super.get(returnType, path, super.resolveQueryParameters(args));
+            default -> throw new IllegalArgumentException("Unsupported method: " + method);
         };
     }
 }
