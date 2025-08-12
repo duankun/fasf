@@ -8,10 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Proxy;
 
-/**
- * @author: duankun
- * @date: 2020/5/27
- */
 public class RemoterFactoryBean<T> extends RequestContextSupport implements FactoryBean<T>, InitializingBean {
     private final Class<T> remoterInterface;
     /**
