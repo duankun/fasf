@@ -13,6 +13,4 @@ public @interface Remoter {
     String protocol() default "http";
 
     Class<? extends RequestInterceptor>[] interceptors() default {};
-
-
 }

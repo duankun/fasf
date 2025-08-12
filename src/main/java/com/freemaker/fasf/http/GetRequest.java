@@ -12,6 +12,7 @@ public class GetRequest extends HttpRequest {
         this.queryParameters = queryParameters;
     }
 
+
     public Map<String, String> getQueryParameters() {
         return queryParameters;
     }
@@ -21,7 +22,7 @@ public class GetRequest extends HttpRequest {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return "GetRequest url:" + getUrl() + " headers:" + JSON.toJSONString(getHeaders()) + " queryParameters:" + JSON.toJSONString(queryParameters);
     }
 }
