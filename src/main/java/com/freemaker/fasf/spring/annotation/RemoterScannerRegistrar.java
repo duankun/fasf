@@ -26,7 +26,9 @@ public class RemoterScannerRegistrar implements ImportBeanDefinitionRegistrar, E
         String[] basePackagesArray = remoterScanAttrs.getStringArray("basePackages");
         List<String> resolvedBasePackages = new ArrayList<>();
         Arrays.stream(basePackagesArray).forEach(basePackage -> resolvedBasePackages.add(environment.resolvePlaceholders(basePackage)));
-        scanner.doScan(resolvedBasePackages.toArray(new String[0]));
+        List<String> allBasePackages = new ArrayList<>();
+        resolvedBasePackages.forEach(basePackage -> allBasePackages.addAll(Arrays.asList(basePackage.split(","))));
+        scanner.doScan(allBasePackages.toArray(new String[0]));
     }
 
     @Override
