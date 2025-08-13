@@ -1,1 +1,1 @@
-com.freemaker.fasf.spring.configuration.FasfConfiguration
+org.fasf.spring.configuration.FasfConfiguration

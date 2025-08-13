@@ -1,0 +1,33 @@
+package org.fasf.spring.proxy;
+
+import org.fasf.http.HttpClient;
+import org.fasf.spring.context.RemoterContext;
+import org.springframework.util.Assert;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+public class RemoterInvocationHandler implements InvocationHandler {
+    private final Class<?> remoterInterface;
+    private final Map<Method, MethodHandler> methodHandlers = new HashMap<>();
+
+    public RemoterInvocationHandler(Class<?> remoterInterface, RemoterContext remoterContext, HttpClient httpClient) {
+        this.remoterInterface = remoterInterface;
+        Method[] declaredMethods = remoterInterface.getDeclaredMethods();
+        Assert.notEmpty(declaredMethods, "No methods found in remoter interface " + remoterInterface.getName());
+        Arrays.stream(declaredMethods).forEach(method -> methodHandlers.put(method, new MethodHandler(method, remoterContext, httpClient)));
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (method.getName().equals("toString")) {
+            return "RemoterProxy for " + remoterInterface.getName();
+        }
+        MethodHandler methodHandler = methodHandlers.get(method);
+        Assert.notNull(methodHandler, "No method handler found for " + method.getName());
+        return methodHandler.invoke(args);
+    }
+}
