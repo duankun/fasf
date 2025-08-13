@@ -17,6 +17,7 @@ import java.util.List;
 
 public class RemoterScannerRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
     private Environment environment;
+
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, @NonNull BeanDefinitionRegistry registry) {
         AnnotationAttributes remoterScanAttrs = AnnotationAttributes
@@ -34,9 +35,5 @@ public class RemoterScannerRegistrar implements ImportBeanDefinitionRegistrar, E
     @Override
     public void setEnvironment(@NonNull Environment environment) {
         this.environment = environment;
-        System.out.println("=== Remoter Configuration ===");
-        System.out.println("fasf.remoter.enable = " + environment.getProperty("fasf.remoter.enable"));
-        System.out.println("fasf.remoter.basePackages = " + environment.getProperty("fasf.remoter.basePackages"));
-        System.out.println("fasf.remoter.encrypt.aesKey = " + environment.getProperty("fasf.remoter.encrypt.aesKey"));
     }
 }
