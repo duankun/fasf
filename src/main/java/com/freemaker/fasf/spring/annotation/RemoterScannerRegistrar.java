@@ -34,5 +34,9 @@ public class RemoterScannerRegistrar implements ImportBeanDefinitionRegistrar, E
     @Override
     public void setEnvironment(@NonNull Environment environment) {
         this.environment = environment;
+        System.out.println("=== Remoter Configuration ===");
+        System.out.println("fasf.remoter.enable = " + environment.getProperty("fasf.remoter.enable"));
+        System.out.println("fasf.remoter.basePackages = " + environment.getProperty("fasf.remoter.basePackages"));
+        System.out.println("fasf.remoter.encrypt.aesKey = " + environment.getProperty("fasf.remoter.encrypt.aesKey"));
     }
 }
