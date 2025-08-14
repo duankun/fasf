@@ -11,8 +11,8 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.freemaker</groupId>
-    <artifactId>fasf</artifactId>
+    <groupId>org.fasf</groupId>
+    <artifactId>fasf-spring-boot-starter</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>

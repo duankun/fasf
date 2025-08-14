@@ -19,7 +19,7 @@ public class HttpRequest {
 
     public HttpRequest(String url, Map<String, String> headers) {
         this.url = url;
-        this.headers = headers;
+        this.headers.putAll(headers);
     }
 
     public String getUrl() {
@@ -45,8 +45,11 @@ public class HttpRequest {
     public static class HttpRequestBuilder {
         private String url;
         private HttpMethod method;
+        private final Map<String, String> headers = new HashMap<>();
         private Map<String, String> queryParameters;
+        private Object originBody;
         private String body;
+
         public HttpRequestBuilder() {
         }
 
@@ -60,20 +63,29 @@ public class HttpRequest {
             return this;
         }
 
+        public HttpRequestBuilder header(String key, String value) {
+            this.headers.put(key, value);
+            return this;
+        }
+
         public HttpRequestBuilder queryParameters(Map<String, String> queryParameters) {
             this.queryParameters = queryParameters;
             return this;
         }
 
         public HttpRequestBuilder body(Object body) {
-            this.body = JSON.toJson(body);
+            this.originBody = body;
             return this;
         }
 
         public HttpRequest build() {
             HttpRequest request = null;
             if (method == HttpMethod.POST) {
-                request = new PostRequest(url, body);
+                String contentType = headers.get("Content-Type");
+                if (contentType.equalsIgnoreCase("application/json")) {
+                    this.body = JSON.toJson(body);
+                }
+                request = new PostRequest(url, headers, originBody, body);
             } else if (method == HttpMethod.GET) {
                 request = new GetRequest(url, queryParameters);
             }

@@ -12,4 +12,5 @@ import java.lang.annotation.Target;
 public @interface Request {
     String path() default "";
     HttpMethod method() default HttpMethod.POST;
+    String contentType() default "application/json";
 }

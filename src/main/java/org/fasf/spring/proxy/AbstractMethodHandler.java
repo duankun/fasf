@@ -1,6 +1,7 @@
 package org.fasf.spring.proxy;
 
 import org.fasf.annotation.GetParam;
+import org.fasf.annotation.Request;
 import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.spring.context.RemoterContext;
@@ -22,10 +23,15 @@ public class AbstractMethodHandler {
         this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
     }
 
-    public <T> T post(Class<T> returnType, String path, Object body) {
+    public <T> T post(Request request, Class<T> returnType, Object body) {
+        return post(request.path(), request.contentType(), body, returnType);
+    }
+
+    public <T> T post(String path, String contentType, Object body, Class<T> returnType) {
         PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
                 .url(remoterContext.getEndpoint() + path)
                 .method(HttpMethod.POST)
+                .header("Content-Type", contentType)
                 .body(body)
                 .build();
         Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);

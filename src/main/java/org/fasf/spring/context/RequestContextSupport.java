@@ -35,9 +35,11 @@ public class RequestContextSupport {
             if (methodAnnotation != null) {
                 Set<Class<? extends RequestInterceptor>> specificMethodInterceptors = Set.of(methodAnnotation.interceptors());
                 Set<RequestInterceptor> methodInterceptors = interceptors.stream().filter(interceptor -> specificMethodInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
-                classInterceptors.addAll(methodInterceptors);
+                methodInterceptors.addAll(classInterceptors);
+                remoterContext.addRequestInterceptors(method, methodInterceptors);
+            } else {
+                remoterContext.addRequestInterceptors(method, classInterceptors);
             }
-            remoterContext.addRequestInterceptors(method, classInterceptors);
         });
     }
 }
