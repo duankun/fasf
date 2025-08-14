@@ -7,6 +7,7 @@ import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.spring.context.RemoterContext;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -56,17 +57,19 @@ public class AbstractMethodHandler {
         return queryParameters;
     }
 
-    public String joinQueryParameters(Map<String, String> queryParameters) {
-        StringBuilder query = new StringBuilder();
-        for (Map.Entry<String, String> entry : queryParameters.entrySet()) {
-            query.append(entry.getKey()).append("=").append(entry.getValue());
+    private String buildUrlWithParams(String baseUrl, Map<String, String> queryParameters) {
+        if (queryParameters == null || queryParameters.isEmpty()) {
+            return baseUrl;
         }
-        return query.toString();
+
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
+        queryParameters.forEach(builder::queryParam);
+        return builder.toUriString();
     }
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
-                .url(remoterContext.getEndpoint() + path + "?" + joinQueryParameters(queryParameters))
+                .url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();

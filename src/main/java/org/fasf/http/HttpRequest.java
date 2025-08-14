@@ -10,9 +10,6 @@ public class HttpRequest {
     private String url;
     private Map<String, String> headers = new HashMap<>();
 
-    public HttpRequest() {
-    }
-
     public HttpRequest(String url) {
         this.url = url;
     }
@@ -83,7 +80,7 @@ public class HttpRequest {
             if (method == HttpMethod.POST) {
                 String contentType = headers.get("Content-Type");
                 if (contentType.equalsIgnoreCase("application/json")) {
-                    this.body = JSON.toJson(body);
+                    this.body = JSON.toJson(originBody);
                 }
                 request = new PostRequest(url, headers, originBody, body);
             } else if (method == HttpMethod.GET) {
