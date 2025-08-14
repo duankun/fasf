@@ -1,6 +1,5 @@
 package org.fasf.util;
 
-import com.alibaba.fastjson2.JSON;
 import org.fasf.model.ro.OrderInfoRO;
 
 import javax.crypto.Cipher;
@@ -47,7 +46,7 @@ public class AesUtils {
         try {
             OrderInfoRO ro = new OrderInfoRO("123456789");
 
-            String originalData = JSON.toJSONString(ro);
+            String originalData = JSON.toJson(ro);
             String key = "MySecretKey12345"; // 16字节密钥
 
             // 加密

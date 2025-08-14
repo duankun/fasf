@@ -1,6 +1,7 @@
 package org.fasf.http;
 
-import com.alibaba.fastjson2.JSON;
+
+import org.fasf.util.JSON;
 
 import java.util.Map;
 
@@ -23,6 +24,6 @@ public class GetRequest extends HttpRequest {
 
     @Override
     public String toString() {
-        return "GetRequest url:" + getUrl() + " headers:" + JSON.toJSONString(getHeaders()) + " queryParameters:" + JSON.toJSONString(queryParameters);
+        return "GetRequest url:" + getUrl() + " headers:" + JSON.toJson(getHeaders()) + " queryParameters:" + JSON.toJson(queryParameters);
     }
 }

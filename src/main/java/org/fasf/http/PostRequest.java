@@ -1,7 +1,6 @@
 package org.fasf.http;
 
-import com.alibaba.fastjson2.JSON;
-
+import org.fasf.util.JSON;
 public class PostRequest extends HttpRequest {
     private String body;
 
@@ -20,6 +19,6 @@ public class PostRequest extends HttpRequest {
 
     @Override
     public String toString(){
-        return "PostRequest url:" + getUrl() + " headers:" + JSON.toJSONString(getHeaders()) + " body:" + body;
+        return "PostRequest url:" + getUrl() + " headers:" + JSON.toJson(getHeaders()) + " body:" + body;
     }
 }

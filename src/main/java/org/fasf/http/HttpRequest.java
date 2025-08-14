@@ -1,6 +1,7 @@
 package org.fasf.http;
 
-import com.alibaba.fastjson2.JSON;
+
+import org.fasf.util.JSON;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class HttpRequest {
         }
 
         public HttpRequestBuilder body(Object body) {
-            this.body = JSON.toJSONString(body);
+            this.body = JSON.toJson(body);
             return this;
         }
 

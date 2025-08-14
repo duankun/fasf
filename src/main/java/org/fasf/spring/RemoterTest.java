@@ -1,6 +1,6 @@
 package org.fasf.spring;
 
-import com.alibaba.fastjson2.JSON;
+import org.fasf.util.JSON;
 import org.fasf.model.ro.OrderInfoRO;
 import org.fasf.model.vo.OrderInfoVO;
 import org.fasf.remoter.OrderInfoRemoter;
@@ -20,6 +20,6 @@ public class RemoterTest implements ApplicationContextAware {
 //        String result = animal.remote("1234");
 //        System.out.println(result);
         OrderInfoVO orderInfo = orderInfoRemoter.getOrderInfo(new OrderInfoRO("123456789"));
-        System.out.println(JSON.toJSONString(orderInfo));
+        System.out.println(JSON.toJson(orderInfo));
     }
 }
