@@ -1,7 +1,7 @@
-package org.fasf.remoter;
+package org.fasf.api.remoter;
 
-import org.fasf.model.ro.OrderInfoRO;
-import org.fasf.model.vo.OrderInfoVO;
+import org.fasf.api.model.ro.OrderInfoRO;
+import org.fasf.api.model.vo.OrderInfoVO;
 import org.fasf.util.JSON;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,16 +1,11 @@
-package org.fasf.model.ro;
+package org.fasf.api.model.vo;
 
 import java.io.Serializable;
 
-public class OrderInfoRO implements Serializable {
+public class OrderInfoVO implements Serializable {
     private String orderId;
-
-    public OrderInfoRO() {
-    }
-
-    public OrderInfoRO(String orderId) {
-        this.orderId = orderId;
-    }
+    private String userName;
+    private String productName;
 
     public String getOrderId() {
         return orderId;
