@@ -1,4 +1,4 @@
-package org.fasf.interceptor;
+package org.fasf.interceptor.encrypt;
 
 import org.fasf.http.GetRequest;
 import org.fasf.http.HttpRequest;

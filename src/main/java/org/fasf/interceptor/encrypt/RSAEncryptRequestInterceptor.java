@@ -1,21 +1,21 @@
-package org.fasf.interceptor;
+package org.fasf.interceptor.encrypt;
 
 import org.fasf.http.GetRequest;
 import org.fasf.http.HttpRequest;
 import org.fasf.http.PostRequest;
-import org.fasf.util.DesUtils;
+import org.fasf.util.RsaUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
-import javax.crypto.SecretKey;
+import java.security.PublicKey;
 import java.util.Map;
 
-public class DESEncryptRequestInterceptor extends EncryptRequestInterceptor implements InitializingBean {
-    @Value("${fasf.remoter.encrypt.desKey}")
-    private String desKey;
-    private SecretKey desSecretKey;
+public class RSAEncryptRequestInterceptor extends EncryptRequestInterceptor implements InitializingBean {
+    @Value("${fasf.remoter.encrypt.serverPublicKey}")
+    private String serverPublicKey;
+    private PublicKey publicKey;
 
     @Override
     public void interceptorInternal(HttpRequest request) {
@@ -31,7 +31,7 @@ public class DESEncryptRequestInterceptor extends EncryptRequestInterceptor impl
         if (!CollectionUtils.isEmpty(queryParameters)) {
             queryParameters.forEach((key, value) -> {
                 try {
-                    String encryptedValue = DesUtils.encrypt(value, desSecretKey);
+                    String encryptedValue = RsaUtils.encrypt(value, publicKey);
                     queryParameters.put(key, encryptedValue);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -43,7 +43,7 @@ public class DESEncryptRequestInterceptor extends EncryptRequestInterceptor impl
     private void postRequestEncrypt(PostRequest postRequest) {
         String body = postRequest.getBody();
         try {
-            postRequest.setBody(DesUtils.encrypt(body, desSecretKey));
+            postRequest.setBody(RsaUtils.encrypt(body, publicKey));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -56,7 +56,7 @@ public class DESEncryptRequestInterceptor extends EncryptRequestInterceptor impl
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        Assert.notNull(desKey, "desKey can not be null");
-        this.desSecretKey = DesUtils.generateKey(desKey);
+        Assert.notNull(serverPublicKey, "serverPublicKey can not be null");
+        this.publicKey = RsaUtils.stringToPublicKey(serverPublicKey);
     }
 }

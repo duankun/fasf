@@ -1,10 +1,11 @@
-package org.fasf.interceptor;
+package org.fasf.interceptor.encrypt;
 
 import org.fasf.http.HttpRequest;
-import org.fasf.model.Consts;
+import org.fasf.interceptor.RequestInterceptor;
+import org.fasf.Consts;
 import org.springframework.beans.factory.annotation.Value;
 
-public abstract class EncryptRequestInterceptor implements RequestInterceptor{
+public abstract class EncryptRequestInterceptor implements RequestInterceptor {
     @Value("${fasf.remoter.encrypt.type}")
     private String encryptType;
 
