@@ -72,16 +72,13 @@ public class HttpRequest {
 
         public HttpRequestBuilder body(Object body) {
             this.originBody = body;
+            this.body = JSON.toJson(originBody);
             return this;
         }
 
         public HttpRequest build() {
             HttpRequest request = null;
             if (method == HttpMethod.POST) {
-                String contentType = headers.get("Content-Type");
-                if (contentType.equalsIgnoreCase("application/json")) {
-                    this.body = JSON.toJson(originBody);
-                }
                 request = new PostRequest(url, headers, originBody, body);
             } else if (method == HttpMethod.GET) {
                 request = new GetRequest(url, queryParameters);

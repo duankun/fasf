@@ -69,7 +69,7 @@ public class AbstractMethodHandler {
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
-                .url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
+                //.url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
@@ -77,6 +77,8 @@ public class AbstractMethodHandler {
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
         }
+        //fix bug which cause the encrypted query parameters not work
+        request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
         System.out.println(request);
         return httpClient.get(returnType, request);
     }
