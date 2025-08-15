@@ -27,6 +27,6 @@ public class GetRequest extends HttpRequest {
 
     @Override
     public String toString() {
-        return "GetRequest url:" + getUrl() + " headers:" + JSON.toJson(getHeaders()) + " queryParameters:" + JSON.toJson(queryParameters) + " originQueryParameters:" + JSON.toJson(originQueryParameters);
+        return "GetRequest: url=" + getUrl() + ", headers=" + JSON.toJson(getHeaders()) + ", queryParameters=" + JSON.toJson(queryParameters) + ", originQueryParameters=" + JSON.toJson(originQueryParameters);
     }
 }

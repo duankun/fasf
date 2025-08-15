@@ -33,6 +33,6 @@ public class PostRequest extends HttpRequest {
 
     @Override
     public String toString() {
-        return "PostRequest url:" + getUrl() + " headers:" + JSON.toJson(getHeaders()) + " body:" + body + " originBody:" + JSON.toJson(originBody);
+        return "PostRequest: url=" + getUrl() + ", headers=" + JSON.toJson(getHeaders()) + ", body=" + body + ", originBody=" + JSON.toJson(originBody);
     }
 }

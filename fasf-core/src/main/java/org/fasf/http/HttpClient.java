@@ -76,7 +76,7 @@ public interface HttpClient {
             if (logger.isDebugEnabled()) {
                 logger.debug("HTTP Response [{}]: Status={}, Duration={}ms, ResponseBody={} ",
                         traceId, exchange.getStatusCode(), duration,
-                        exchange.getBody() != null ? exchange.getBody() : null);
+                        exchange.getBody());
             }
             return exchange;
         }
