@@ -5,10 +5,11 @@ import org.fasf.api.model.ro.OrderInfoRO;
 import org.fasf.api.model.vo.OrderInfoVO;
 import org.fasf.http.HttpMethod;
 import org.fasf.interceptor.AuthorizationInterceptor;
+import org.fasf.interceptor.TraceIdInterceptor;
 import org.fasf.interceptor.encrypt.AESEncryptRequestInterceptor;
 
 
-@Remoter(endpoint = "http://localhost:8082/summerboot",interceptors = {AuthorizationInterceptor.class})
+@Remoter(endpoint = "http://localhost:8082/summerboot", interceptors = {TraceIdInterceptor.class, AuthorizationInterceptor.class})
 public interface OrderInfoRemoter {
 
     @Request(path = "/getOrderInfo")
@@ -16,7 +17,6 @@ public interface OrderInfoRemoter {
     @Retryable
     OrderInfoVO getOrderInfo(OrderInfoRO orderInfoRO);
 
-    @Request(path = "/get", method = HttpMethod.GET)
-    @Interceptors(interceptors = {AuthorizationInterceptor.class, AESEncryptRequestInterceptor.class})
-    String get(@GetParam("userName")String userName);
+    @Request(path = "/getOrderInfo", method = HttpMethod.GET)
+    String get(@GetParam("orderId") String orderId);
 }

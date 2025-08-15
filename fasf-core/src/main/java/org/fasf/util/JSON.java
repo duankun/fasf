@@ -49,6 +49,9 @@ public class JSON {
         if (json == null || json.isEmpty()) {
             return null;
         }
+        if (clazz == String.class) {
+            return clazz.cast(json);
+        }
         try {
             return objectMapper.readValue(json, clazz);
         } catch (JsonProcessingException e) {

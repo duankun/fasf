@@ -76,7 +76,7 @@ public class AbstractMethodHandler {
         request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
         String originResponseString = null;
         try {
-            httpClient.get(request);
+            originResponseString = httpClient.get(request);
         } catch (HttpException httpException) {
             Retryable retryable = method.getAnnotation(Retryable.class);
             if (httpException.retryable() && retryable != null) {

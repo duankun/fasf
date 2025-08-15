@@ -18,6 +18,6 @@ public class RemoterTest implements ApplicationContextAware {
 //        String result = animal.remote("1234");
 //        System.out.println(result);
         OrderInfoVO orderInfo = orderInfoRemoter.getOrderInfo(new OrderInfoRO("123456789"));
-//        System.out.println(orderInfoRemoter.get("fasf=端口"));
+        orderInfoRemoter.get("fasf=端口");
     }
 }
