@@ -15,8 +15,6 @@ public class RemoterTest implements ApplicationContextAware {
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-//        String result = animal.remote("1234");
-//        System.out.println(result);
         OrderInfoVO orderInfo = orderInfoRemoter.getOrderInfo(new OrderInfoRO("123456789"));
         orderInfoRemoter.get("fasf=端口");
     }

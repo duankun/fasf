@@ -5,6 +5,7 @@ import org.fasf.annotation.Request;
 import org.fasf.annotation.Retryable;
 import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
+import org.fasf.interceptor.TraceIdInterceptor;
 import org.fasf.spring.context.RemoterContext;
 import org.fasf.util.JSON;
 import org.slf4j.Logger;
@@ -37,9 +38,6 @@ public class AbstractMethodHandler {
     }
 
     public <T> T post(String path, String contentType, Object body, Class<T> returnType) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Execute post method:{}", method);
-        }
         PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
                 .url(remoterContext.getEndpoint() + path)
                 .method(HttpMethod.POST)
@@ -47,6 +45,9 @@ public class AbstractMethodHandler {
                 .body(body)
                 .build();
         this.applyRequestInterceptors(request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Execute post method [{}]:{}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), method);
+        }
         String originResponseString;
         try {
             originResponseString = httpClient.post(request);
@@ -63,15 +64,15 @@ public class AbstractMethodHandler {
     }
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Execute get method:{}", method);
-        }
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
                 //.url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
         this.applyRequestInterceptors(request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Execute get method [{}]:{}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), method);
+        }
         //fix bug which cause the encrypted query parameters not work
         request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
         String originResponseString = null;
@@ -117,10 +118,10 @@ public class AbstractMethodHandler {
     private void applyRequestInterceptors(HttpRequest request) {
         Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Apply interceptors: {}", requestInterceptors);
-            }
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Apply interceptors [{}]: {}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), requestInterceptors);
+            }
         }
     }
 
