@@ -1,9 +1,8 @@
 package org.fasf.interceptor;
 
 import org.fasf.http.HttpRequest;
-import org.fasf.interceptor.RequestInterceptor;
 
-public class AuthInterceptor implements RequestInterceptor {
+public class AuthorizationInterceptor implements RequestInterceptor {
     @Override
     public void intercept(HttpRequest request) {
         request.addHeader("Authorization", "Bearer 123456");

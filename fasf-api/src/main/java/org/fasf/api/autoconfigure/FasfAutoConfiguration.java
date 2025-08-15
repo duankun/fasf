@@ -1,4 +1,4 @@
-package org.fasf.api.configuration;
+package org.fasf.api.autoconfigure;
 
 import org.fasf.spring.annotation.RemoterScan;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,5 +11,5 @@ import org.springframework.context.annotation.Configuration;
         havingValue = "true",
         matchIfMissing = true
 )
-public class FasfConfiguration {
+public class FasfAutoConfiguration {
 }

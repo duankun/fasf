@@ -8,6 +8,7 @@ import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.lang.NonNull;
@@ -55,7 +56,7 @@ public class ClassPathRemoterScanner extends ClassPathBeanDefinitionScanner {
             Method[] declaredMethods = beanClass.getDeclaredMethods();
             Assert.notEmpty(declaredMethods, "No methods found in remoter interface " + beanClass.getName());
             Arrays.stream(declaredMethods).forEach(method -> {
-                Interceptors methodAnnotation = method.getAnnotation(Interceptors.class);
+                Interceptors methodAnnotation = AnnotatedElementUtils.findMergedAnnotation(method, Interceptors.class);
                 if (methodAnnotation != null) {
                     Class<? extends RequestInterceptor>[] methodInterceptors = methodAnnotation.interceptors();
                     Collections.addAll(interceptors, methodInterceptors);

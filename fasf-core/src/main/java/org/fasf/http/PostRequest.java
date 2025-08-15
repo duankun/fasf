@@ -1,6 +1,5 @@
 package org.fasf.http;
 
-import org.fasf.http.HttpRequest;
 import org.fasf.util.JSON;
 
 import java.util.Map;
@@ -34,6 +33,6 @@ public class PostRequest extends HttpRequest {
 
     @Override
     public String toString() {
-        return "PostRequest url:" + getUrl() + " headers:" + JSON.toJson(getHeaders()) + " body:" + body;
+        return "PostRequest url:" + getUrl() + " headers:" + JSON.toJson(getHeaders()) + " body:" + body + " originBody:" + JSON.toJson(originBody);
     }
 }

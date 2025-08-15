@@ -5,15 +5,20 @@ import org.fasf.annotation.Request;
 import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.spring.context.RemoterContext;
+import org.fasf.util.JSON;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class AbstractMethodHandler {
+    private final Logger logger = LoggerFactory.getLogger(AbstractMethodHandler.class);
     private final Method method;
     private final HttpClient httpClient;
     private final RemoterContext remoterContext;
@@ -29,22 +34,31 @@ public class AbstractMethodHandler {
     }
 
     public <T> T post(String path, String contentType, Object body, Class<T> returnType) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Execute post method:{}", method);
+        }
         PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
                 .url(remoterContext.getEndpoint() + path)
                 .method(HttpMethod.POST)
                 .header("Content-Type", contentType)
                 .body(body)
                 .build();
-        Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
-        if (!CollectionUtils.isEmpty(requestInterceptors)) {
-            requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
+        this.applyInterceptors(request);
+        if (logger.isDebugEnabled()) {
+            logger.debug(request.toString());
         }
-        System.out.println(request);
-        return httpClient.post(returnType, request);
+        T t = httpClient.post(returnType, request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("PostResponse:{}", t instanceof String ? t : JSON.toJson(t));
+        }
+        return t;
     }
 
     public Map<String, String> resolveQueryParameters(Object[] args) {
-        Map<String, String> queryParameters = new java.util.HashMap<>();
+        if (args == null || args.length == 0) {
+            return null;
+        }
+        Map<String, String> queryParameters = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             MethodParameter methodParameter = new MethodParameter(method, i);
             if (methodParameter.hasParameterAnnotation(GetParam.class)) {
@@ -68,18 +82,34 @@ public class AbstractMethodHandler {
     }
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Execute get method:{}", method);
+        }
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
                 //.url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
-        Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
-        if (!CollectionUtils.isEmpty(requestInterceptors)) {
-            requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
-        }
+        this.applyInterceptors(request);
         //fix bug which cause the encrypted query parameters not work
         request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
-        System.out.println(request);
-        return httpClient.get(returnType, request);
+        if (logger.isDebugEnabled()) {
+            logger.debug(request.toString());
+        }
+        T t = httpClient.get(returnType, request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("GetResponse:{}", t instanceof String ? t : JSON.toJson(t));
+        }
+        return t;
+    }
+
+    private void applyInterceptors(HttpRequest request) {
+        Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
+        if (!CollectionUtils.isEmpty(requestInterceptors)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Apply interceptors: {}", requestInterceptors);
+            }
+            requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
+        }
     }
 }

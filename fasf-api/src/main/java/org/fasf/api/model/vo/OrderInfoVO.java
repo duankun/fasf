@@ -14,4 +14,20 @@ public class OrderInfoVO implements Serializable {
     public void setOrderId(String orderId) {
         this.orderId = orderId;
     }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
 }

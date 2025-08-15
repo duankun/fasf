@@ -2,7 +2,6 @@ package org.fasf.api.remoter;
 
 import org.fasf.api.model.ro.OrderInfoRO;
 import org.fasf.api.model.vo.OrderInfoVO;
-import org.fasf.util.JSON;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -19,7 +18,6 @@ public class RemoterTest implements ApplicationContextAware {
 //        String result = animal.remote("1234");
 //        System.out.println(result);
         OrderInfoVO orderInfo = orderInfoRemoter.getOrderInfo(new OrderInfoRO("123456789"));
-        System.out.println(JSON.toJson(orderInfo));
-        System.out.println(orderInfoRemoter.get("fasf=端口"));
+//        System.out.println(orderInfoRemoter.get("fasf=端口"));
     }
 }
