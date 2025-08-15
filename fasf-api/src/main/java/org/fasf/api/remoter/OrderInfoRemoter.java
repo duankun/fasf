@@ -1,9 +1,6 @@
 package org.fasf.api.remoter;
 
-import org.fasf.annotation.GetParam;
-import org.fasf.annotation.Interceptors;
-import org.fasf.annotation.Remoter;
-import org.fasf.annotation.Request;
+import org.fasf.annotation.*;
 import org.fasf.api.model.ro.OrderInfoRO;
 import org.fasf.api.model.vo.OrderInfoVO;
 import org.fasf.http.HttpMethod;
@@ -16,6 +13,7 @@ public interface OrderInfoRemoter {
 
     @Request(path = "/getOrderInfo")
     @Interceptors(value = {AESEncryptRequestInterceptor.class})
+    @Retryable
     OrderInfoVO getOrderInfo(OrderInfoRO orderInfoRO);
 
     @Request(path = "/get", method = HttpMethod.GET)

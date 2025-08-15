@@ -2,6 +2,7 @@ package org.fasf.spring.proxy;
 
 import org.fasf.annotation.GetParam;
 import org.fasf.annotation.Request;
+import org.fasf.annotation.Retryable;
 import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.spring.context.RemoterContext;
@@ -10,12 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class AbstractMethodHandler {
     private final Logger logger = LoggerFactory.getLogger(AbstractMethodHandler.class);
@@ -43,15 +46,46 @@ public class AbstractMethodHandler {
                 .header("Content-Type", contentType)
                 .body(body)
                 .build();
-        this.applyInterceptors(request);
-        if (logger.isDebugEnabled()) {
-            logger.debug(request.toString());
+        this.applyRequestInterceptors(request);
+        String originResponseString;
+        try {
+            originResponseString = httpClient.post(request);
+        } catch (HttpException httpException) {
+            Retryable retryable = method.getAnnotation(Retryable.class);
+            if (httpException.retryable() && retryable != null) {
+                originResponseString = this.retry(request, retryable);
+            } else {
+                throw httpException;
+            }
         }
-        T t = httpClient.post(returnType, request);
+        //todo apply response interceptors
+        return JSON.fromJson(originResponseString, returnType);
+    }
+
+    public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
         if (logger.isDebugEnabled()) {
-            logger.debug("PostResponse:{}", t instanceof String ? t : JSON.toJson(t));
+            logger.debug("Execute get method:{}", method);
         }
-        return t;
+        GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
+                //.url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
+                .method(HttpMethod.GET)
+                .queryParameters(queryParameters)
+                .build();
+        this.applyRequestInterceptors(request);
+        //fix bug which cause the encrypted query parameters not work
+        request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
+        String originResponseString = null;
+        try {
+            httpClient.get(request);
+        } catch (HttpException httpException) {
+            Retryable retryable = method.getAnnotation(Retryable.class);
+            if (httpException.retryable() && retryable != null) {
+                originResponseString = this.retry(request, retryable);
+            } else {
+                throw httpException;
+            }
+        }
+        return JSON.fromJson(originResponseString, returnType);
     }
 
     public Map<String, String> resolveQueryParameters(Object[] args) {
@@ -75,35 +109,12 @@ public class AbstractMethodHandler {
         if (queryParameters == null || queryParameters.isEmpty()) {
             return baseUrl;
         }
-
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
         queryParameters.forEach(builder::queryParam);
         return builder.toUriString();
     }
 
-    public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Execute get method:{}", method);
-        }
-        GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
-                //.url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
-                .method(HttpMethod.GET)
-                .queryParameters(queryParameters)
-                .build();
-        this.applyInterceptors(request);
-        //fix bug which cause the encrypted query parameters not work
-        request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
-        if (logger.isDebugEnabled()) {
-            logger.debug(request.toString());
-        }
-        T t = httpClient.get(returnType, request);
-        if (logger.isDebugEnabled()) {
-            logger.debug("GetResponse:{}", t instanceof String ? t : JSON.toJson(t));
-        }
-        return t;
-    }
-
-    private void applyInterceptors(HttpRequest request) {
+    private void applyRequestInterceptors(HttpRequest request) {
         Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
             if (logger.isDebugEnabled()) {
@@ -111,5 +122,30 @@ public class AbstractMethodHandler {
             }
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
         }
+    }
+
+    private String retry(HttpRequest request, Retryable retryable) {
+        String originResponseString = null;
+        for (int i = 0; i < retryable.maxAttempts(); i++) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(retryable.delay());
+                if (request instanceof GetRequest getRequest) {
+                    originResponseString = httpClient.get(getRequest);
+                } else if (request instanceof PostRequest postRequest) {
+                    originResponseString = httpClient.post(postRequest);
+                }
+                break;
+            } catch (HttpException e) {
+                if (!e.retryable()) {
+                    throw e;
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (!StringUtils.hasText(originResponseString)) {
+            throw new HttpException(500, "Request failed after retry " + retryable.maxAttempts() + " times");
+        }
+        return originResponseString;
     }
 }
