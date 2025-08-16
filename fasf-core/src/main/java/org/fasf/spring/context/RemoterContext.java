@@ -1,6 +1,7 @@
 package org.fasf.spring.context;
 
 import org.fasf.interceptor.RequestInterceptor;
+import org.fasf.interceptor.ResponseInterceptor;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
@@ -11,6 +12,7 @@ import java.util.Set;
 public class RemoterContext {
     private String endpoint;
     private final Map<Method, Set<RequestInterceptor>> requestInterceptors = new HashMap<>();
+    private final Map<Method, ResponseInterceptor> responseInterceptors = new HashMap<>();
 
     public String getEndpoint() {
         return endpoint;
@@ -24,9 +26,19 @@ public class RemoterContext {
         return requestInterceptors.get(method);
     }
 
+    public ResponseInterceptor getResponseInterceptor(Method method) {
+        return responseInterceptors.get(method);
+    }
+
     public void addRequestInterceptors(Method method, Set<RequestInterceptor> interceptors) {
         if (!CollectionUtils.isEmpty(interceptors)) {
             this.requestInterceptors.put(method, interceptors);
+        }
+    }
+
+    public void setResponseInterceptor(Method method, ResponseInterceptor interceptor) {
+        if (interceptor != null) {
+            this.responseInterceptors.put(method, interceptor);
         }
     }
 

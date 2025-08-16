@@ -1,7 +1,7 @@
 package org.fasf.annotation;
 
-import org.fasf.interceptor.*;
-import org.springframework.core.annotation.AliasFor;
+import org.fasf.interceptor.RequestInterceptor;
+import org.fasf.interceptor.ResponseInterceptor;
 
 import java.lang.annotation.*;
 
@@ -9,8 +9,6 @@ import java.lang.annotation.*;
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Documented
 public @interface Interceptors {
-    @AliasFor("interceptors")
-    Class<? extends RequestInterceptor>[] value() default {};
-    @AliasFor("value")
-    Class<? extends RequestInterceptor>[] interceptors() default {};
+    Class<? extends RequestInterceptor>[] requestInterceptors() default {};
+    Class<? extends ResponseInterceptor> responseInterceptor() default ResponseInterceptor.NoOpResponseInterceptor.class;
 }

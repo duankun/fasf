@@ -1,15 +1,14 @@
 package org.fasf.spring.proxy;
 
 import org.fasf.http.HttpClient;
-import org.fasf.spring.context.RequestContextSupport;
-import org.fasf.spring.proxy.RemoterInvocationHandler;
+import org.fasf.spring.context.RemoterContextSupport;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Proxy;
 
-public class RemoterFactoryBean<T> extends RequestContextSupport implements FactoryBean<T>, InitializingBean {
+public class RemoterFactoryBean<T> extends RemoterContextSupport implements FactoryBean<T>, InitializingBean {
     private final Class<T> remoterInterface;
     /**
      * if there is no {@link HttpClient} configured, a default one {@link HttpClient.DefaultHttpClient} will be used

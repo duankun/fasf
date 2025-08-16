@@ -5,6 +5,7 @@ import org.fasf.annotation.Request;
 import org.fasf.annotation.Retryable;
 import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
+import org.fasf.interceptor.ResponseInterceptor;
 import org.fasf.interceptor.TraceIdInterceptor;
 import org.fasf.spring.context.RemoterContext;
 import org.fasf.util.JSON;
@@ -45,22 +46,23 @@ public class AbstractMethodHandler {
                 .body(body)
                 .build();
         this.applyRequestInterceptors(request);
+        String traceId = request.getHeaders().get(TraceIdInterceptor.TRACE_ID);
         if (logger.isDebugEnabled()) {
-            logger.debug("Execute post method [{}]:{}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), method);
+            logger.debug("Execute post method [{}]:{}", traceId, method);
         }
-        String originResponseString;
+        String originResponseBody;
         try {
-            originResponseString = httpClient.post(request);
+            originResponseBody = httpClient.post(request);
         } catch (HttpException httpException) {
             Retryable retryable = method.getAnnotation(Retryable.class);
-            if (httpException.retryable() && retryable != null) {
-                originResponseString = this.retry(request, retryable);
+            if (retryable != null && httpException.retryable()) {
+                originResponseBody = this.retry(request, retryable);
             } else {
                 throw httpException;
             }
         }
-        //todo apply response interceptors
-        return JSON.fromJson(originResponseString, returnType);
+        originResponseBody = this.applyResponseInterceptor(originResponseBody, traceId);
+        return JSON.fromJson(originResponseBody, returnType);
     }
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
@@ -70,23 +72,25 @@ public class AbstractMethodHandler {
                 .queryParameters(queryParameters)
                 .build();
         this.applyRequestInterceptors(request);
+        String traceId = request.getHeaders().get(TraceIdInterceptor.TRACE_ID);
         if (logger.isDebugEnabled()) {
-            logger.debug("Execute get method [{}]:{}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), method);
+            logger.debug("Execute get method [{}]:{}", traceId, method);
         }
         //fix bug which cause the encrypted query parameters not work
         request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
-        String originResponseString = null;
+        String originResponseBody;
         try {
-            originResponseString = httpClient.get(request);
+            originResponseBody = httpClient.get(request);
         } catch (HttpException httpException) {
             Retryable retryable = method.getAnnotation(Retryable.class);
-            if (httpException.retryable() && retryable != null) {
-                originResponseString = this.retry(request, retryable);
+            if (retryable != null && httpException.retryable()) {
+                originResponseBody = this.retry(request, retryable);
             } else {
                 throw httpException;
             }
         }
-        return JSON.fromJson(originResponseString, returnType);
+        originResponseBody = this.applyResponseInterceptor(originResponseBody, traceId);
+        return JSON.fromJson(originResponseBody, returnType);
     }
 
     public Map<String, String> resolveQueryParameters(Object[] args) {
@@ -120,9 +124,21 @@ public class AbstractMethodHandler {
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply interceptors [{}]: {}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), requestInterceptors);
+                logger.debug("Apply request interceptors [{}]: {}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), requestInterceptors);
             }
         }
+    }
+
+    private String applyResponseInterceptor(String originResponseString, String traceId) {
+        ResponseInterceptor responseInterceptor = remoterContext.getResponseInterceptor(method);
+        if (responseInterceptor != null) {
+            String interceptedResponseString = responseInterceptor.intercept(originResponseString);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Apply response interceptor [{}]: {} ,before interceptor={}, after interceptor:{}", traceId, responseInterceptor, originResponseString, interceptedResponseString);
+            }
+            return interceptedResponseString;
+        }
+        return originResponseString;
     }
 
     private String retry(HttpRequest request, Retryable retryable) {

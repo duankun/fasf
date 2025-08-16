@@ -1,8 +1,8 @@
 package org.fasf.spring.proxy;
 
 import org.fasf.annotation.Interceptors;
-import org.fasf.annotation.Remoter;
 import org.fasf.interceptor.RequestInterceptor;
+import org.fasf.interceptor.ResponseInterceptor;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -40,7 +40,8 @@ public class ClassPathRemoterScanner extends ClassPathBeanDefinitionScanner {
 
     public void processBeanDefinition(Set<BeanDefinitionHolder> beanDefinitionHolders) {
         BeanDefinitionRegistry registry = super.getRegistry();
-        Set<Class<? extends RequestInterceptor>> interceptors = new HashSet<>();
+        Set<Class<? extends RequestInterceptor>> requestInterceptors = new HashSet<>();
+        Set<Class<? extends ResponseInterceptor>> responseInterceptors = new HashSet<>();
         beanDefinitionHolders.forEach(beanDefinitionHolder -> {
             if (registry.containsBeanDefinition(beanDefinitionHolder.getBeanName())) {
                 registry.removeBeanDefinition(beanDefinitionHolder.getBeanName());
@@ -51,23 +52,27 @@ public class ClassPathRemoterScanner extends ClassPathBeanDefinitionScanner {
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
-            Remoter annotation = beanClass.getAnnotation(Remoter.class);
-            Collections.addAll(interceptors, annotation.interceptors());
+            Interceptors classInterceptors = beanClass.getAnnotation(Interceptors.class);
+            Collections.addAll(requestInterceptors, classInterceptors.requestInterceptors());
+            Collections.addAll(responseInterceptors, classInterceptors.responseInterceptor());
             Method[] declaredMethods = beanClass.getDeclaredMethods();
             Assert.notEmpty(declaredMethods, "No methods found in remoter interface " + beanClass.getName());
             Arrays.stream(declaredMethods).forEach(method -> {
-                Interceptors methodAnnotation = AnnotatedElementUtils.findMergedAnnotation(method, Interceptors.class);
-                if (methodAnnotation != null) {
-                    Class<? extends RequestInterceptor>[] methodInterceptors = methodAnnotation.interceptors();
-                    Collections.addAll(interceptors, methodInterceptors);
+                Interceptors methodInterceptors = AnnotatedElementUtils.findMergedAnnotation(method, Interceptors.class);
+                if (methodInterceptors != null) {
+                    Collections.addAll(requestInterceptors, methodInterceptors.requestInterceptors());
+                    Collections.addAll(responseInterceptors, methodInterceptors.responseInterceptor());
                 }
             });
             beanDefinitionHolder.getBeanDefinition().setBeanClassName(RemoterFactoryBean.class.getName());
             beanDefinitionHolder.getBeanDefinition().getConstructorArgumentValues().addGenericArgumentValue(beanClass);
             registry.registerBeanDefinition(beanDefinitionHolder.getBeanName(), beanDefinitionHolder.getBeanDefinition());
         });
-        if (!CollectionUtils.isEmpty(interceptors)) {
-            interceptors.forEach(interceptor -> registry.registerBeanDefinition(interceptor.getName(), new RootBeanDefinition(interceptor)));
+        if (!CollectionUtils.isEmpty(requestInterceptors)) {
+            requestInterceptors.forEach(interceptor -> registry.registerBeanDefinition(interceptor.getName(), new RootBeanDefinition(interceptor)));
+        }
+        if (!CollectionUtils.isEmpty(responseInterceptors)) {
+            responseInterceptors.forEach(interceptor -> registry.registerBeanDefinition(interceptor.getName(), new RootBeanDefinition(interceptor)));
         }
     }
 
