@@ -1,6 +1,5 @@
 package org.fasf.http;
 
-import org.fasf.interceptor.TraceIdInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -17,9 +16,9 @@ import java.time.Duration;
 import java.util.Map;
 
 public interface HttpClient {
-    String get(GetRequest request) throws HttpException;
+    String get(GetRequest request) throws Exception;
 
-    String post(PostRequest request) throws HttpException;
+    String post(PostRequest request) throws Exception;
 
     class DefaultHttpClient implements HttpClient {
         private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
@@ -37,13 +36,13 @@ public interface HttpClient {
         }
 
         @Override
-        public String get(GetRequest request) throws HttpException {
+        public String get(GetRequest request) throws Exception {
             ResponseEntity<String> exchange = executeRequest(request);
             return exchange.getBody();
         }
 
         @Override
-        public String post(PostRequest request) throws HttpException {
+        public String post(PostRequest request) throws Exception {
             ResponseEntity<String> exchange = executeRequest(request);
             return exchange.getBody();
         }
@@ -52,14 +51,11 @@ public interface HttpClient {
             long startTime = System.currentTimeMillis();
             MultiValueMap<String, String> httpHeaders = new HttpHeaders();
             Map<String, String> headers = request.getHeaders();
-            String traceId = null;
             if (headers != null) {
-                traceId = headers.get(TraceIdInterceptor.TRACE_ID);
                 headers.forEach(httpHeaders::add);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("HTTP Request [{}]: {}",
-                        traceId, request);
+                logger.debug("HTTP Request: {}", request);
             }
             String body = null;
             HttpMethod httpMethod = null;
@@ -74,8 +70,8 @@ public interface HttpClient {
             long duration = System.currentTimeMillis() - startTime;
 
             if (logger.isDebugEnabled()) {
-                logger.debug("HTTP Response [{}]: Status={}, Duration={}ms, ResponseBody={} ",
-                        traceId, exchange.getStatusCode(), duration,
+                logger.debug("HTTP Response: Status={}, Duration={}ms, ResponseBody={} ",
+                        exchange.getStatusCode(), duration,
                         exchange.getBody());
             }
             return exchange;

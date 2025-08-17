@@ -19,7 +19,7 @@ public class MethodHandler extends AbstractMethodHandler {
     public Object invoke(Object[] args) {
         return switch (request.method()) {
             case POST -> super.post(request, returnType, args[0]);
-            case GET -> super.get(returnType, request.path(), super.resolveQueryParameters(args));
+            case GET -> super.get(returnType, request.path(), args);
             default -> throw new IllegalArgumentException("Unsupported method: " + request.method());
         };
     }

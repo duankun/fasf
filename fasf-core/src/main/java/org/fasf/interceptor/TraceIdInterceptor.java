@@ -2,14 +2,14 @@ package org.fasf.interceptor;
 
 
 import org.fasf.http.HttpRequest;
+import org.slf4j.MDC;
 
-import java.util.UUID;
+import static org.fasf.Const.TRACE_ID;
 
 public class TraceIdInterceptor implements RequestInterceptor {
-    public static final String TRACE_ID = "X-Trace-Id";
     @Override
     public void intercept(HttpRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = MDC.get(TRACE_ID);
         request.addHeader(TRACE_ID, traceId);
     }
 

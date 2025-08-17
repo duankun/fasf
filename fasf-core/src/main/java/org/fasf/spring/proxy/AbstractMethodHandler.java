@@ -1,16 +1,17 @@
 package org.fasf.spring.proxy;
 
+import org.fasf.Const;
 import org.fasf.annotation.GetParam;
 import org.fasf.annotation.Request;
 import org.fasf.annotation.Retryable;
 import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.interceptor.ResponseInterceptor;
-import org.fasf.interceptor.TraceIdInterceptor;
 import org.fasf.spring.context.ApiContext;
 import org.fasf.util.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -20,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class AbstractMethodHandler {
@@ -35,7 +37,12 @@ public class AbstractMethodHandler {
     }
 
     public <T> T post(Request request, Class<T> returnType, Object body) {
-        return post(request.path(), request.contentType(), body, returnType);
+        this.setupMDC();
+        try {
+            return post(request.path(), request.contentType(), body, returnType);
+        } finally {
+            this.cleanupMDC();
+        }
     }
 
     public <T> T post(String path, String contentType, Object body, Class<T> returnType) {
@@ -46,23 +53,26 @@ public class AbstractMethodHandler {
                 .body(body)
                 .build();
         this.applyRequestInterceptors(request);
-        String traceId = request.getHeaders().get(TraceIdInterceptor.TRACE_ID);
         if (logger.isDebugEnabled()) {
-            logger.debug("Execute post method [{}]:{}", traceId, method);
+            logger.debug("Execute post method:{}", method);
         }
         String originResponseBody;
         try {
             originResponseBody = httpClient.post(request);
-        } catch (HttpException httpException) {
-            Retryable retryable = method.getAnnotation(Retryable.class);
-            if (retryable != null && httpException.retryable()) {
-                originResponseBody = this.retry(request, retryable);
-            } else {
-                throw httpException;
-            }
+        } catch (Exception e) {
+            originResponseBody = this.handleExceptionAndRetry(request, e);
         }
-        originResponseBody = this.applyResponseInterceptor(originResponseBody, traceId);
+        originResponseBody = this.applyResponseInterceptor(originResponseBody);
         return JSON.fromJson(originResponseBody, returnType);
+    }
+
+    public <T> T get(Class<T> returnType, String path, Object[] args) {
+        this.setupMDC();
+        try {
+            return get(returnType, path, this.resolveQueryParameters(args));
+        } finally {
+            this.cleanupMDC();
+        }
     }
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
@@ -72,28 +82,22 @@ public class AbstractMethodHandler {
                 .queryParameters(queryParameters)
                 .build();
         this.applyRequestInterceptors(request);
-        String traceId = request.getHeaders().get(TraceIdInterceptor.TRACE_ID);
         if (logger.isDebugEnabled()) {
-            logger.debug("Execute get method [{}]:{}", traceId, method);
+            logger.debug("Execute get method:{}", method);
         }
         //fix bug which cause the encrypted query parameters not work
         request.setUrl(this.buildUrlWithParams(apiContext.getEndpoint() + path, request.getQueryParameters()));
         String originResponseBody;
         try {
             originResponseBody = httpClient.get(request);
-        } catch (HttpException httpException) {
-            Retryable retryable = method.getAnnotation(Retryable.class);
-            if (retryable != null && httpException.retryable()) {
-                originResponseBody = this.retry(request, retryable);
-            } else {
-                throw httpException;
-            }
+        } catch (Exception e) {
+            originResponseBody = this.handleExceptionAndRetry(request, e);
         }
-        originResponseBody = this.applyResponseInterceptor(originResponseBody, traceId);
+        originResponseBody = this.applyResponseInterceptor(originResponseBody);
         return JSON.fromJson(originResponseBody, returnType);
     }
 
-    public Map<String, String> resolveQueryParameters(Object[] args) {
+    private Map<String, String> resolveQueryParameters(Object[] args) {
         if (args == null || args.length == 0) {
             return null;
         }
@@ -119,32 +123,54 @@ public class AbstractMethodHandler {
         return builder.toUriString();
     }
 
+    private void setupMDC() {
+        String traceId = MDC.get(Const.TRACE_ID);
+        if (traceId == null) {
+            traceId = UUID.randomUUID().toString().substring(0, 8); // 简化 traceId
+            MDC.put(Const.TRACE_ID, traceId);
+        }
+    }
+
+    private void cleanupMDC() {
+        MDC.clear();
+    }
+
     private void applyRequestInterceptors(HttpRequest request) {
         Set<RequestInterceptor> requestInterceptors = apiContext.getRequestInterceptors(method);
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply request interceptors [{}]: {}", request.getHeaders().get(TraceIdInterceptor.TRACE_ID), requestInterceptors);
+                logger.debug("Apply request interceptors: {}", requestInterceptors);
             }
         }
     }
 
-    private String applyResponseInterceptor(String originResponseString, String traceId) {
+    private String applyResponseInterceptor(String originResponseString) {
         ResponseInterceptor responseInterceptor = apiContext.getResponseInterceptor(method);
         if (responseInterceptor != null) {
             String interceptedResponseString = responseInterceptor.intercept(originResponseString);
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply response interceptor [{}]: {} ,before interceptor={}, after interceptor:{}", traceId, responseInterceptor, originResponseString, interceptedResponseString);
+                logger.debug("Apply response interceptor: {} ,before interceptor={}, after interceptor:{}", responseInterceptor, originResponseString, interceptedResponseString);
             }
             return interceptedResponseString;
         }
         return originResponseString;
     }
 
+    private String handleExceptionAndRetry(HttpRequest request, Exception exception) {
+        Retryable retryable = method.getAnnotation(Retryable.class);
+        if (retryable != null && exception instanceof HttpException httpException && httpException.retryable()) {
+            return this.retry(request, retryable);
+        } else {
+            throw new RuntimeException(exception);
+        }
+    }
+
     private String retry(HttpRequest request, Retryable retryable) {
         String originResponseString = null;
         for (int i = 0; i < retryable.maxAttempts(); i++) {
             try {
+                logger.debug("Retrying request, attempt {}/{}", i + 1, retryable.maxAttempts());
                 TimeUnit.MILLISECONDS.sleep(retryable.delay());
                 if (request instanceof GetRequest getRequest) {
                     originResponseString = httpClient.get(getRequest);
@@ -152,12 +178,14 @@ public class AbstractMethodHandler {
                     originResponseString = httpClient.post(postRequest);
                 }
                 break;
-            } catch (HttpException e) {
-                if (!e.retryable()) {
-                    throw e;
+            } catch (Exception e) {
+                if (e instanceof HttpException exception) {
+                    if (!exception.retryable()) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    throw new RuntimeException(e);
                 }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
             }
         }
         if (!StringUtils.hasText(originResponseString)) {
