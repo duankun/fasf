@@ -39,13 +39,13 @@ public class AbstractMethodHandler {
     public <T> T post(Request request, Class<T> returnType, Object body) {
         this.setupMDC();
         try {
-            return post(request.path(), request.contentType(), body, returnType);
+            return this.post(request.path(), request.contentType(), body, returnType);
         } finally {
             this.cleanupMDC();
         }
     }
 
-    public <T> T post(String path, String contentType, Object body, Class<T> returnType) {
+    private <T> T post(String path, String contentType, Object body, Class<T> returnType) {
         PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
                 .url(apiContext.getEndpoint() + path)
                 .method(HttpMethod.POST)
@@ -69,13 +69,13 @@ public class AbstractMethodHandler {
     public <T> T get(Class<T> returnType, String path, Object[] args) {
         this.setupMDC();
         try {
-            return get(returnType, path, this.resolveQueryParameters(args));
+            return this.get(returnType, path, this.resolveQueryParameters(args));
         } finally {
             this.cleanupMDC();
         }
     }
 
-    public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
+    private <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
                 //.url(this.buildUrlWithParams(apiContext.getEndpoint() + path, queryParameters))
                 .method(HttpMethod.GET)
@@ -126,7 +126,7 @@ public class AbstractMethodHandler {
     private void setupMDC() {
         String traceId = MDC.get(Const.TRACE_ID);
         if (traceId == null) {
-            traceId = UUID.randomUUID().toString().substring(0, 8); // 简化 traceId
+            traceId = UUID.randomUUID().toString().substring(0, 8);
             MDC.put(Const.TRACE_ID, traceId);
         }
     }

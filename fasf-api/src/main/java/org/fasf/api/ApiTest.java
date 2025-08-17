@@ -16,6 +16,6 @@ public class ApiTest implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         OrderInfoVO orderInfo = orderInfoApi.getOrderInfo(new OrderInfoRO("123456789"));
-        orderInfoApi.get("fasf=端口");
+        orderInfoApi.getOrderInfo("fasf=端口");
     }
 }

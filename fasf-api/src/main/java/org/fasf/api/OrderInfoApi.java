@@ -20,5 +20,5 @@ public interface OrderInfoApi {
     OrderInfoVO getOrderInfo(OrderInfoRO orderInfoRO);
 
     @Request(path = "/getOrderInfo", method = HttpMethod.GET)
-    String get(@GetParam("orderId") String orderId);
+    String getOrderInfo(@GetParam("orderId") String orderId);
 }

@@ -31,23 +31,23 @@ public class ApiContextSupport {
         Assert.notNull(apiInterface, "Api interface cannot be null");
         Api api = apiInterface.getAnnotation(Api.class);
         apiContext.setEndpoint(api.endpoint());
-        Interceptors interceptors = apiInterface.getAnnotation(Interceptors.class);
-        Set<Class<? extends RequestInterceptor>> specificClassRequestInterceptors = Set.of(interceptors.requestInterceptors());
-        Class<? extends ResponseInterceptor> specificResponseInterceptor = interceptors.responseInterceptor();
+        Interceptors classInterceptorsAnnotation = apiInterface.getAnnotation(Interceptors.class);
+        Set<Class<? extends RequestInterceptor>> specificClassRequestInterceptors = Set.of(classInterceptorsAnnotation.requestInterceptors());
+        Class<? extends ResponseInterceptor> specificClassResponseInterceptor = classInterceptorsAnnotation.responseInterceptor();
         Set<RequestInterceptor> classRequestInterceptors = CollectionUtils.isEmpty(requestInterceptors) ? new TreeSet<>() : requestInterceptors.stream().filter(interceptor -> specificClassRequestInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
-        ResponseInterceptor classResponseInterceptor = CollectionUtils.isEmpty(responseInterceptors) ? null : responseInterceptors.stream().filter(interceptor -> specificResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
+        ResponseInterceptor classResponseInterceptor = CollectionUtils.isEmpty(responseInterceptors) ? null : responseInterceptors.stream().filter(interceptor -> specificClassResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
         Method[] declaredMethods = apiInterface.getDeclaredMethods();
         Assert.notEmpty(declaredMethods, "No methods found in api interface " + apiInterface.getName());
         Arrays.stream(declaredMethods).forEach(method -> {
-            Interceptors methodAnnotation = AnnotatedElementUtils.findMergedAnnotation(method, Interceptors.class);
-            if (methodAnnotation != null) {
-                Set<Class<? extends RequestInterceptor>> specificMethodRequestInterceptors = Set.of(methodAnnotation.requestInterceptors());
-                Set<RequestInterceptor> methodInterceptors = CollectionUtils.isEmpty(specificMethodRequestInterceptors) ? new TreeSet<>() : requestInterceptors.stream().filter(interceptor -> specificMethodRequestInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
-                methodInterceptors.addAll(classRequestInterceptors);
-                apiContext.addRequestInterceptors(method, methodInterceptors);
-                Class<? extends ResponseInterceptor> specificMethodResponseInterceptor = methodAnnotation.responseInterceptor();
-                ResponseInterceptor responseInterceptor = CollectionUtils.isEmpty(responseInterceptors) ? null : responseInterceptors.stream().filter(interceptor -> specificMethodResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
-                apiContext.setResponseInterceptor(method, responseInterceptor);
+            Interceptors methodInterceptorsAnnotation = AnnotatedElementUtils.findMergedAnnotation(method, Interceptors.class);
+            if (methodInterceptorsAnnotation != null) {
+                Set<Class<? extends RequestInterceptor>> specificMethodRequestInterceptors = Set.of(methodInterceptorsAnnotation.requestInterceptors());
+                Set<RequestInterceptor> methodRequestInterceptors = CollectionUtils.isEmpty(specificMethodRequestInterceptors) ? new TreeSet<>() : requestInterceptors.stream().filter(interceptor -> specificMethodRequestInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
+                methodRequestInterceptors.addAll(classRequestInterceptors);
+                apiContext.addRequestInterceptors(method, methodRequestInterceptors);
+                Class<? extends ResponseInterceptor> specificMethodResponseInterceptor = methodInterceptorsAnnotation.responseInterceptor();
+                ResponseInterceptor methodResponseInterceptor = CollectionUtils.isEmpty(responseInterceptors) ? null : responseInterceptors.stream().filter(interceptor -> specificMethodResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
+                apiContext.setResponseInterceptor(method, methodResponseInterceptor == null ? classResponseInterceptor : methodResponseInterceptor);
             } else {
                 apiContext.addRequestInterceptors(method, classRequestInterceptors);
                 apiContext.setResponseInterceptor(method, classResponseInterceptor);
