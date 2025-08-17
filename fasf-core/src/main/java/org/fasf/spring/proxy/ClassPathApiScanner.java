@@ -22,9 +22,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ClassPathRemoterScanner extends ClassPathBeanDefinitionScanner {
+public class ClassPathApiScanner extends ClassPathBeanDefinitionScanner {
 
-    public ClassPathRemoterScanner(BeanDefinitionRegistry registry, Class<? extends Annotation> annotationClass) {
+    public ClassPathApiScanner(BeanDefinitionRegistry registry, Class<? extends Annotation> annotationClass) {
         super(registry);
         super.addIncludeFilter(new AnnotationTypeFilter(annotationClass));
     }
@@ -56,7 +56,7 @@ public class ClassPathRemoterScanner extends ClassPathBeanDefinitionScanner {
             Collections.addAll(requestInterceptors, classInterceptors.requestInterceptors());
             Collections.addAll(responseInterceptors, classInterceptors.responseInterceptor());
             Method[] declaredMethods = beanClass.getDeclaredMethods();
-            Assert.notEmpty(declaredMethods, "No methods found in remoter interface " + beanClass.getName());
+            Assert.notEmpty(declaredMethods, "No methods found in api interface " + beanClass.getName());
             Arrays.stream(declaredMethods).forEach(method -> {
                 Interceptors methodInterceptors = AnnotatedElementUtils.findMergedAnnotation(method, Interceptors.class);
                 if (methodInterceptors != null) {
@@ -64,7 +64,7 @@ public class ClassPathRemoterScanner extends ClassPathBeanDefinitionScanner {
                     Collections.addAll(responseInterceptors, methodInterceptors.responseInterceptor());
                 }
             });
-            beanDefinitionHolder.getBeanDefinition().setBeanClassName(RemoterFactoryBean.class.getName());
+            beanDefinitionHolder.getBeanDefinition().setBeanClassName(ApiFactoryBean.class.getName());
             beanDefinitionHolder.getBeanDefinition().getConstructorArgumentValues().addGenericArgumentValue(beanClass);
             registry.registerBeanDefinition(beanDefinitionHolder.getBeanName(), beanDefinitionHolder.getBeanDefinition());
         });

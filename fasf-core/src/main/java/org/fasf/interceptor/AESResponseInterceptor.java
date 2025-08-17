@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import javax.crypto.SecretKey;
 
 public class AESResponseInterceptor implements ResponseInterceptor, InitializingBean {
-    @Value("${fasf.remoter.encrypt.aesKey}")
+    @Value("${fasf.api.encrypt.aesKey}")
     private String aesKey;
     private SecretKey aesSecretKey;
     @Override

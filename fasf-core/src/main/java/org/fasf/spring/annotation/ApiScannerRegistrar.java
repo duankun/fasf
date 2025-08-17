@@ -1,7 +1,7 @@
 package org.fasf.spring.annotation;
 
-import org.fasf.annotation.Remoter;
-import org.fasf.spring.proxy.ClassPathRemoterScanner;
+import org.fasf.annotation.Api;
+import org.fasf.spring.proxy.ClassPathApiScanner;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
@@ -15,16 +15,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class RemoterScannerRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
+public class ApiScannerRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
     private Environment environment;
 
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, @NonNull BeanDefinitionRegistry registry) {
-        AnnotationAttributes remoterScanAttrs = AnnotationAttributes
-                .fromMap(importingClassMetadata.getAnnotationAttributes(RemoterScan.class.getName()));
-        ClassPathRemoterScanner scanner = new ClassPathRemoterScanner(registry, Remoter.class);
-        Assert.notNull(remoterScanAttrs, "@RemoterScan is not present on importing class");
-        String[] basePackagesArray = remoterScanAttrs.getStringArray("basePackages");
+        AnnotationAttributes apiScanAttrs = AnnotationAttributes
+                .fromMap(importingClassMetadata.getAnnotationAttributes(ApiScan.class.getName()));
+        ClassPathApiScanner scanner = new ClassPathApiScanner(registry, Api.class);
+        Assert.notNull(apiScanAttrs, "@ApiScan is not present on importing class");
+        String[] basePackagesArray = apiScanAttrs.getStringArray("basePackages");
         List<String> resolvedBasePackages = new ArrayList<>();
         Arrays.stream(basePackagesArray).forEach(basePackage -> resolvedBasePackages.add(environment.resolvePlaceholders(basePackage)));
         List<String> allBasePackages = new ArrayList<>();

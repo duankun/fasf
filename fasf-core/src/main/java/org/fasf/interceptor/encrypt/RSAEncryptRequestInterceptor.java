@@ -3,7 +3,6 @@ package org.fasf.interceptor.encrypt;
 import org.fasf.http.GetRequest;
 import org.fasf.http.HttpRequest;
 import org.fasf.http.PostRequest;
-import org.fasf.interceptor.encrypt.EncryptRequestInterceptor;
 import org.fasf.util.RsaUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +13,7 @@ import java.security.PublicKey;
 import java.util.Map;
 
 public class RSAEncryptRequestInterceptor extends EncryptRequestInterceptor implements InitializingBean {
-    @Value("${fasf.remoter.encrypt.serverPublicKey}")
+    @Value("${fasf.api.encrypt.serverPublicKey}")
     private String serverPublicKey;
     private PublicKey publicKey;
 

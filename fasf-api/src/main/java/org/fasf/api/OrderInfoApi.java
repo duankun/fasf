@@ -1,8 +1,8 @@
-package org.fasf.api.remoter;
+package org.fasf.api;
 
 import org.fasf.annotation.*;
-import org.fasf.api.model.ro.OrderInfoRO;
-import org.fasf.api.model.vo.OrderInfoVO;
+import org.fasf.model.ro.OrderInfoRO;
+import org.fasf.model.vo.OrderInfoVO;
 import org.fasf.http.HttpMethod;
 import org.fasf.interceptor.AESResponseInterceptor;
 import org.fasf.interceptor.AuthorizationInterceptor;
@@ -10,9 +10,9 @@ import org.fasf.interceptor.TraceIdInterceptor;
 import org.fasf.interceptor.encrypt.AESEncryptRequestInterceptor;
 
 
-@Remoter(endpoint = "http://localhost:8082/summerboot")
+@Api(endpoint = "http://localhost:8082/summerboot")
 @Interceptors(requestInterceptors = {TraceIdInterceptor.class, AuthorizationInterceptor.class})
-public interface OrderInfoRemoter {
+public interface OrderInfoApi {
 
     @Request(path = "/getOrderInfo")
     @Interceptors(requestInterceptors = {AESEncryptRequestInterceptor.class}, responseInterceptor = AESResponseInterceptor.class)

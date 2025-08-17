@@ -3,7 +3,6 @@ package org.fasf.interceptor.encrypt;
 import org.fasf.http.GetRequest;
 import org.fasf.http.HttpRequest;
 import org.fasf.http.PostRequest;
-import org.fasf.interceptor.encrypt.EncryptRequestInterceptor;
 import org.fasf.util.AesUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +13,7 @@ import javax.crypto.SecretKey;
 import java.util.Map;
 
 public class AESEncryptRequestInterceptor extends EncryptRequestInterceptor implements InitializingBean {
-    @Value("${fasf.remoter.encrypt.aesKey}")
+    @Value("${fasf.api.encrypt.aesKey}")
     private String aesKey;
     private SecretKey aesSecretKey;
 

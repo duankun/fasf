@@ -1,7 +1,7 @@
-package org.fasf.api.remoter;
+package org.fasf.api;
 
-import org.fasf.api.model.ro.OrderInfoRO;
-import org.fasf.api.model.vo.OrderInfoVO;
+import org.fasf.model.ro.OrderInfoRO;
+import org.fasf.model.vo.OrderInfoVO;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -9,13 +9,13 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RemoterTest implements ApplicationContextAware {
+public class ApiTest implements ApplicationContextAware {
     @Autowired
-    private OrderInfoRemoter orderInfoRemoter;
+    private OrderInfoApi orderInfoApi;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        OrderInfoVO orderInfo = orderInfoRemoter.getOrderInfo(new OrderInfoRO("123456789"));
-        orderInfoRemoter.get("fasf=端口");
+        OrderInfoVO orderInfo = orderInfoApi.getOrderInfo(new OrderInfoRO("123456789"));
+        orderInfoApi.get("fasf=端口");
     }
 }

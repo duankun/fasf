@@ -1,6 +1,5 @@
 package org.fasf.spring.annotation;
 
-import org.fasf.spring.annotation.RemoterScannerRegistrar;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
 
@@ -8,8 +7,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Import(RemoterScannerRegistrar.class)
-public @interface RemoterScan {
+@Import(ApiScannerRegistrar.class)
+public @interface ApiScan {
     @AliasFor("basePackages")
     String[] value() default {};
     @AliasFor("value")

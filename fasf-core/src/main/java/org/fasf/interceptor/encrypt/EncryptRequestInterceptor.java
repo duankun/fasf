@@ -6,7 +6,7 @@ import org.fasf.interceptor.RequestInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 
 public abstract class EncryptRequestInterceptor implements RequestInterceptor {
-    @Value("${fasf.remoter.encrypt.type}")
+    @Value("${fasf.api.encrypt.type}")
     private String encryptType;
 
     @Override

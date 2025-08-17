@@ -1,4 +1,4 @@
-package org.fasf.api.model.vo;
+package org.fasf.model.vo;
 
 import java.io.Serializable;
 

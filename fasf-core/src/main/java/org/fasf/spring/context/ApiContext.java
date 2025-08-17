@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class RemoterContext {
+public class ApiContext {
     private String endpoint;
     private final Map<Method, Set<RequestInterceptor>> requestInterceptors = new HashMap<>();
     private final Map<Method, ResponseInterceptor> responseInterceptors = new HashMap<>();

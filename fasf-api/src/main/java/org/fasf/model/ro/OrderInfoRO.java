@@ -1,4 +1,4 @@
-package org.fasf.api.model.ro;
+package org.fasf.model.ro;
 
 import java.io.Serializable;
 

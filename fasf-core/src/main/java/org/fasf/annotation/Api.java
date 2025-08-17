@@ -5,7 +5,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-public @interface Remoter {
+public @interface Api {
     String endpoint() default "";
 
     String protocol() default "http";

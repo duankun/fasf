@@ -7,7 +7,7 @@ import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.interceptor.ResponseInterceptor;
 import org.fasf.interceptor.TraceIdInterceptor;
-import org.fasf.spring.context.RemoterContext;
+import org.fasf.spring.context.ApiContext;
 import org.fasf.util.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +26,11 @@ public class AbstractMethodHandler {
     private final Logger logger = LoggerFactory.getLogger(AbstractMethodHandler.class);
     private final Method method;
     private final HttpClient httpClient;
-    private final RemoterContext remoterContext;
+    private final ApiContext apiContext;
 
-    public AbstractMethodHandler(Method method, RemoterContext remoterContext, HttpClient httpClient) {
+    public AbstractMethodHandler(Method method, ApiContext apiContext, HttpClient httpClient) {
         this.method = method;
-        this.remoterContext = remoterContext;
+        this.apiContext = apiContext;
         this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
     }
 
@@ -40,7 +40,7 @@ public class AbstractMethodHandler {
 
     public <T> T post(String path, String contentType, Object body, Class<T> returnType) {
         PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
-                .url(remoterContext.getEndpoint() + path)
+                .url(apiContext.getEndpoint() + path)
                 .method(HttpMethod.POST)
                 .header("Content-Type", contentType)
                 .body(body)
@@ -67,7 +67,7 @@ public class AbstractMethodHandler {
 
     public <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
-                //.url(this.buildUrlWithParams(remoterContext.getEndpoint() + path, queryParameters))
+                //.url(this.buildUrlWithParams(apiContext.getEndpoint() + path, queryParameters))
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
@@ -77,7 +77,7 @@ public class AbstractMethodHandler {
             logger.debug("Execute get method [{}]:{}", traceId, method);
         }
         //fix bug which cause the encrypted query parameters not work
-        request.setUrl(this.buildUrlWithParams(remoterContext.getEndpoint() + path, request.getQueryParameters()));
+        request.setUrl(this.buildUrlWithParams(apiContext.getEndpoint() + path, request.getQueryParameters()));
         String originResponseBody;
         try {
             originResponseBody = httpClient.get(request);
@@ -120,7 +120,7 @@ public class AbstractMethodHandler {
     }
 
     private void applyRequestInterceptors(HttpRequest request) {
-        Set<RequestInterceptor> requestInterceptors = remoterContext.getRequestInterceptors(method);
+        Set<RequestInterceptor> requestInterceptors = apiContext.getRequestInterceptors(method);
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
             if (logger.isDebugEnabled()) {
@@ -130,7 +130,7 @@ public class AbstractMethodHandler {
     }
 
     private String applyResponseInterceptor(String originResponseString, String traceId) {
-        ResponseInterceptor responseInterceptor = remoterContext.getResponseInterceptor(method);
+        ResponseInterceptor responseInterceptor = apiContext.getResponseInterceptor(method);
         if (responseInterceptor != null) {
             String interceptedResponseString = responseInterceptor.intercept(originResponseString);
             if (logger.isDebugEnabled()) {
