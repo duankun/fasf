@@ -49,7 +49,7 @@ public class JSON {
         if (json == null || json.isEmpty()) {
             return null;
         }
-        if (clazz == String.class) {
+        if (String.class.isAssignableFrom(clazz)) {
             return clazz.cast(json);
         }
         try {

@@ -1,9 +1,10 @@
 package org.fasf.interceptor.encrypt;
 
-import org.fasf.Const;
 import org.fasf.http.HttpRequest;
 import org.fasf.interceptor.RequestInterceptor;
 import org.springframework.beans.factory.annotation.Value;
+
+import static org.fasf.Constants.ENCRYPT_TYPE;
 
 public abstract class EncryptRequestInterceptor implements RequestInterceptor {
     @Value("${fasf.api.encrypt.type}")
@@ -11,7 +12,7 @@ public abstract class EncryptRequestInterceptor implements RequestInterceptor {
 
     @Override
     public void intercept(HttpRequest request){
-        request.addHeader(Const.ENCRYPT_TYPE, encryptType);
+        request.addHeader(ENCRYPT_TYPE, encryptType);
         interceptorInternal(request);
     }
 

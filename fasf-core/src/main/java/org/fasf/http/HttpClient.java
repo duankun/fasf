@@ -1,99 +1,104 @@
 package org.fasf.http;
 
+import io.netty.channel.ChannelOption;
+import org.fasf.util.MDCUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.*;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.ResponseErrorHandler;
-import org.springframework.web.client.RestTemplate;
+import org.slf4j.MDC;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.io.IOException;
-import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public interface HttpClient {
-    String get(GetRequest request);
+    default String get(GetRequest request) {
+        return this.getAsync(request).join();
+    }
 
-    String post(PostRequest request);
+    default String post(PostRequest request) {
+        return this.postAsync(request).join();
+    }
+
+    CompletableFuture<String> getAsync(GetRequest request);
+
+    CompletableFuture<String> postAsync(PostRequest request);
 
     class DefaultHttpClient implements HttpClient {
         private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
-        private final RestTemplate restTemplate;
+        private final WebClient webClient;
 
         public DefaultHttpClient() {
-            SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-            requestFactory.setConnectTimeout((int) Duration.ofSeconds(5).toMillis());
-            requestFactory.setReadTimeout((int) Duration.ofSeconds(30).toMillis());
-
-            this.restTemplate = new RestTemplateBuilder()
-                    .requestFactory(() -> requestFactory)
-                    .errorHandler(new CustomResponseErrorHandler())
-                    .build();
+            webClient = WebClient.builder()
+                    .clientConnector(new ReactorClientHttpConnector(reactor.netty.http.client.HttpClient.create()
+                            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                            .responseTimeout(Duration.ofSeconds(30))
+                            .keepAlive(true))).build();
         }
 
         @Override
-        public String get(GetRequest request) {
-            ResponseEntity<String> exchange = executeRequest(request);
-            return exchange.getBody();
-        }
-
-        @Override
-        public String post(PostRequest request) {
-            ResponseEntity<String> exchange = executeRequest(request);
-            return exchange.getBody();
-        }
-
-        private ResponseEntity<String> executeRequest(HttpRequest request) {
-            long startTime = System.currentTimeMillis();
-            MultiValueMap<String, String> httpHeaders = new HttpHeaders();
-            Map<String, String> headers = request.getHeaders();
-            if (headers != null) {
-                headers.forEach(httpHeaders::add);
-            }
+        public CompletableFuture<String> getAsync(GetRequest request) {
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
             if (logger.isDebugEnabled()) {
-                logger.debug("HTTP Request: {}", request);
+                logger.debug("HTTP GetRequest: {}", request);
             }
-            String body = null;
-            HttpMethod httpMethod = null;
-            if (request instanceof GetRequest) {
-                httpMethod = HttpMethod.GET;
-            } else if (request instanceof PostRequest postRequest) {
-                body = postRequest.getBody();
-                httpMethod = HttpMethod.POST;
-            }
-            RequestEntity<String> requestEntity = new RequestEntity<>(body, httpHeaders, httpMethod, URI.create(request.getUrl()));
-            ResponseEntity<String> exchange = restTemplate.exchange(requestEntity, String.class);
-            long duration = System.currentTimeMillis() - startTime;
+            return webClient.get()
+                    .uri(request.getUrl())
+                    .headers(httpHeaders -> {
+                        if (request.getHeaders() != null) {
+                            request.getHeaders().forEach(httpHeaders::add);
+                        }
+                    })
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .onErrorMap(throwable -> {
+                        try {
+                            MDCUtils.setContextMap(contextMap);
+                            return handleWebClientException(throwable);
+                        } finally {
+                            MDCUtils.cleanupMDC();
+                        }
+                    })
+                    .toFuture();
+        }
 
+        @Override
+        public CompletableFuture<String> postAsync(PostRequest request) {
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
             if (logger.isDebugEnabled()) {
-                logger.debug("HTTP Response: Status={}, Duration={}ms, ResponseBody={} ",
-                        exchange.getStatusCode(), duration,
-                        exchange.getBody());
+                logger.debug("HTTP PostRequest: {}", request);
             }
-            return exchange;
+            return webClient.post()
+                    .uri(request.getUrl())
+                    .headers(httpHeaders -> {
+                        if (request.getHeaders() != null) {
+                            request.getHeaders().forEach(httpHeaders::add);
+                        }
+                    })
+                    .bodyValue(request.getBody())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .onErrorMap(throwable -> {
+                        try {
+                            MDCUtils.setContextMap(contextMap);
+                            return handleWebClientException(throwable);
+                        } finally {
+                            MDCUtils.cleanupMDC();
+                        }
+                    })
+                    .toFuture();
         }
-    }
 
-    class CustomResponseErrorHandler implements ResponseErrorHandler {
-        private final Logger logger = LoggerFactory.getLogger(CustomResponseErrorHandler.class);
-
-        @Override
-        public boolean hasError(ClientHttpResponse response) throws IOException {
-            HttpStatusCode statusCode = response.getStatusCode();
-            return statusCode.isError();
+        private Throwable handleWebClientException(Throwable throwable) {
+            if (throwable instanceof WebClientResponseException ex) {
+                HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+                logger.warn("Request encounter an error:{} {}", status.value(), status.getReasonPhrase());
+                return new HttpException(status);
+            }
+            return throwable;
         }
-
-        @Override
-        public void handleError(URI url, HttpMethod method, ClientHttpResponse response) throws IOException {
-            HttpStatus statusCode = (HttpStatus) response.getStatusCode();
-            logger.warn("Request encounter an error:{} {}", statusCode.value(), statusCode.getReasonPhrase());
-            throw new HttpException(statusCode);
-        }
-
     }
 }

@@ -4,7 +4,7 @@ package org.fasf.interceptor;
 import org.fasf.http.HttpRequest;
 import org.slf4j.MDC;
 
-import static org.fasf.Const.TRACE_ID;
+import static org.fasf.Constants.TRACE_ID;
 
 public class TraceIdInterceptor implements RequestInterceptor {
     @Override

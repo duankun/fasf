@@ -1,11 +1,15 @@
 package org.fasf.model.vo;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.List;
 
 public class OrderInfoVO implements Serializable {
     private String orderId;
+    private Long userId;
+    private Long orderTime;
+    private BigDecimal orderPrice;
     private String userName;
-    private String productName;
 
     public String getOrderId() {
         return orderId;
@@ -13,6 +17,30 @@ public class OrderInfoVO implements Serializable {
 
     public void setOrderId(String orderId) {
         this.orderId = orderId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getOrderTime() {
+        return orderTime;
+    }
+
+    public void setOrderTime(Long orderTime) {
+        this.orderTime = orderTime;
+    }
+
+    public BigDecimal getOrderPrice() {
+        return orderPrice;
+    }
+
+    public void setOrderPrice(BigDecimal orderPrice) {
+        this.orderPrice = orderPrice;
     }
 
     public String getUserName() {
@@ -23,6 +51,14 @@ public class OrderInfoVO implements Serializable {
         this.userName = userName;
     }
 
+    public String getUserPhoneNO() {
+        return userPhoneNO;
+    }
+
+    public void setUserPhoneNO(String userPhoneNO) {
+        this.userPhoneNO = userPhoneNO;
+    }
+
     public String getProductName() {
         return productName;
     }
@@ -30,4 +66,17 @@ public class OrderInfoVO implements Serializable {
     public void setProductName(String productName) {
         this.productName = productName;
     }
+
+    public List<String> getProductImages() {
+        return productImages;
+    }
+
+    public void setProductImages(List<String> productImages) {
+        this.productImages = productImages;
+    }
+
+    private String userPhoneNO;
+    private String productName;
+    private List<String> productImages;
+
 }

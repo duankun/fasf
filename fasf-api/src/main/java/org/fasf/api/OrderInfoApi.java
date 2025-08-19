@@ -9,6 +9,8 @@ import org.fasf.interceptor.AuthorizationInterceptor;
 import org.fasf.interceptor.TraceIdInterceptor;
 import org.fasf.interceptor.encrypt.AESEncryptRequestInterceptor;
 
+import java.util.concurrent.CompletableFuture;
+
 
 @Api(endpoint = "http://localhost:8082/summerboot")
 @Interceptors(requestInterceptors = {TraceIdInterceptor.class, AuthorizationInterceptor.class})
@@ -16,9 +18,9 @@ public interface OrderInfoApi {
 
     @Request(path = "/getOrderInfo")
     @Interceptors(requestInterceptors = {AESEncryptRequestInterceptor.class}, responseInterceptor = AESResponseInterceptor.class)
-    @Retryable
-    OrderInfoVO getOrderInfo(OrderInfoRO orderInfoRO);
+    CompletableFuture<OrderInfoVO> getOrderInfo(OrderInfoRO orderInfoRO);
 
     @Request(path = "/getOrderInfo", method = HttpMethod.GET)
-    String getOrderInfo(@GetParam("orderId") String orderId);
+    @Retryable
+    OrderInfoVO getOrderInfo(@GetParam("orderId") String orderId);
 }

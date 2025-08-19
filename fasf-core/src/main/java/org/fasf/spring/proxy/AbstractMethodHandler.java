@@ -1,6 +1,5 @@
 package org.fasf.spring.proxy;
 
-import org.fasf.Const;
 import org.fasf.annotation.GetParam;
 import org.fasf.annotation.Request;
 import org.fasf.annotation.Retryable;
@@ -8,21 +7,24 @@ import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.interceptor.ResponseInterceptor;
 import org.fasf.spring.context.ApiContext;
+import org.fasf.util.ClassUtils;
 import org.fasf.util.JSON;
+import org.fasf.util.MDCUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class AbstractMethodHandler {
     private final Logger logger = LoggerFactory.getLogger(AbstractMethodHandler.class);
@@ -36,13 +38,42 @@ public class AbstractMethodHandler {
         this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
     }
 
-    public <T> T post(Request request, Class<T> returnType, Object body) {
-        this.setupMDC();
+    public Method getMethod() {
+        return method;
+    }
+
+    public <T> T post(Request request, Object body, Class<T> returnType) {
+        MDCUtils.setupMDC();
         try {
-            return this.post(request.path(), request.contentType(), body, returnType);
+            //noinspection unchecked
+            return CompletableFuture.class.isAssignableFrom(returnType) ? (T) this.postFuture(request.path(), request.contentType(), body) : this.post(request.path(), request.contentType(), body, returnType);
         } finally {
-            this.cleanupMDC();
+            MDCUtils.cleanupMDC();
         }
+    }
+
+    public <T> CompletableFuture<T> postFuture(String path, String contentType, Object body) {
+        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+        PostRequest request = (PostRequest) new HttpRequest.HttpRequestBuilder()
+                .url(apiContext.getEndpoint() + path)
+                .method(HttpMethod.POST)
+                .header("Content-Type", contentType)
+                .body(body)
+                .build();
+        this.applyRequestInterceptors(request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Execute post method:{}", method);
+        }
+        CompletableFuture<String> future = httpClient.postAsync(request);
+        return future.thenApply(responseString -> {
+            try {
+                MDCUtils.setContextMap(mdcContext);
+                //noinspection unchecked
+                return JSON.fromJson(this.applyResponseInterceptor(responseString), (Class<T>) ClassUtils.getGenericReturnType(method));
+            } finally {
+                MDCUtils.cleanupMDC();
+            }
+        });
     }
 
     private <T> T post(String path, String contentType, Object body, Class<T> returnType) {
@@ -66,18 +97,42 @@ public class AbstractMethodHandler {
         return JSON.fromJson(originResponseBody, returnType);
     }
 
-    public <T> T get(Class<T> returnType, String path, Object[] args) {
-        this.setupMDC();
+    public <T> T get(Request request, Object[] args, Class<T> returnType) {
+        MDCUtils.setupMDC();
         try {
-            return this.get(returnType, path, this.resolveQueryParameters(args));
+            Map<String, String> queryParameters = this.resolveQueryParameters(args);
+            //noinspection unchecked
+            return CompletableFuture.class.isAssignableFrom(returnType) ? (T) this.getFuture(request.path(), queryParameters) : this.get(returnType, request.path(), queryParameters);
         } finally {
-            this.cleanupMDC();
+            MDCUtils.cleanupMDC();
         }
+    }
+
+    public <T> CompletableFuture<T> getFuture(String path, Map<String, String> queryParameters) {
+        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+        GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
+                .method(HttpMethod.GET)
+                .queryParameters(queryParameters)
+                .build();
+        this.applyRequestInterceptors(request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Execute get method:{}", method);
+        }
+        request.setUrl(this.buildUrlWithQueryParameters(apiContext.getEndpoint() + path, request.getQueryParameters()));
+        CompletableFuture<String> future = httpClient.getAsync(request);
+        return future.thenApply(responseString -> {
+            try {
+                MDCUtils.setContextMap(mdcContext);
+                //noinspection unchecked
+                return JSON.fromJson(this.applyResponseInterceptor(responseString), (Class<T>) ClassUtils.getGenericReturnType(method));
+            } finally {
+                MDCUtils.cleanupMDC();
+            }
+        });
     }
 
     private <T> T get(Class<T> returnType, String path, Map<String, String> queryParameters) {
         GetRequest request = (GetRequest) new HttpRequest.HttpRequestBuilder()
-                //.url(this.buildUrlWithParams(apiContext.getEndpoint() + path, queryParameters))
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
@@ -86,7 +141,7 @@ public class AbstractMethodHandler {
             logger.debug("Execute get method:{}", method);
         }
         //fix bug which cause the encrypted query parameters not work
-        request.setUrl(this.buildUrlWithParams(apiContext.getEndpoint() + path, request.getQueryParameters()));
+        request.setUrl(this.buildUrlWithQueryParameters(apiContext.getEndpoint() + path, request.getQueryParameters()));
         String originResponseBody;
         try {
             originResponseBody = httpClient.get(request);
@@ -114,25 +169,13 @@ public class AbstractMethodHandler {
         return queryParameters;
     }
 
-    private String buildUrlWithParams(String baseUrl, Map<String, String> queryParameters) {
+    private String buildUrlWithQueryParameters(String baseUrl, Map<String, String> queryParameters) {
         if (queryParameters == null || queryParameters.isEmpty()) {
             return baseUrl;
         }
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
-        queryParameters.forEach(builder::queryParam);
-        return builder.toUriString();
-    }
-
-    private void setupMDC() {
-        String traceId = MDC.get(Const.TRACE_ID);
-        if (traceId == null) {
-            traceId = UUID.randomUUID().toString().substring(0, 8);
-            MDC.put(Const.TRACE_ID, traceId);
-        }
-    }
-
-    private void cleanupMDC() {
-        MDC.clear();
+        return baseUrl + "?" + queryParameters.entrySet().stream()
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
+                .collect(Collectors.joining("&"));
     }
 
     private void applyRequestInterceptors(HttpRequest request) {
@@ -159,11 +202,16 @@ public class AbstractMethodHandler {
 
     private String handleExceptionAndRetry(HttpRequest request, Exception exception) {
         Retryable retryable = method.getAnnotation(Retryable.class);
-        if (retryable != null && exception instanceof HttpException httpException && httpException.retryable()) {
-            return this.retry(request, retryable);
-        } else {
+        if (retryable == null) {
             throw new RuntimeException(exception);
         }
+        if (exception instanceof CompletionException completionException) {
+            Throwable cause = completionException.getCause();
+            if (cause instanceof HttpException httpException && httpException.retryable()) {
+                return this.retry(request, retryable);
+            }
+        }
+        throw new RuntimeException(exception);
     }
 
     private String retry(HttpRequest request, Retryable retryable) {
@@ -179,8 +227,13 @@ public class AbstractMethodHandler {
                 }
                 break;
             } catch (Exception e) {
-                if (e instanceof HttpException exception) {
-                    if (!exception.retryable()) {
+                if (e instanceof CompletionException completionException) {
+                    Throwable cause = completionException.getCause();
+                    if (cause instanceof HttpException httpException) {
+                        if (!httpException.retryable()) {
+                            throw httpException;
+                        }
+                    } else {
                         throw new RuntimeException(e);
                     }
                 } else {
