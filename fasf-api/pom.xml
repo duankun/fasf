@@ -6,22 +6,17 @@
     <parent>
         <groupId>org.fasf</groupId>
         <artifactId>fasf</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>fasf-api</artifactId>
     <packaging>jar</packaging>
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.fasf</groupId>
             <artifactId>fasf-core</artifactId>
-            <version>${project.version}</version>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 
