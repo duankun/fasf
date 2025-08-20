@@ -14,8 +14,10 @@ public class AMapServiceImpl implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        CompletableFuture<String> district = aMapApi.district("your amapapi key", "四川", "1");
-        System.out.println(district.join());
+        String district = aMapApi.district("your amapapi key", "四川", "1");
+        System.out.println(district);
+        CompletableFuture<String> districtAsync = aMapApi.districtAsync("your amapapi key", "四川", "1");
+        System.out.println(districtAsync.join());
     }
 
 }

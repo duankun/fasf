@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.netty.resources.ConnectionProvider;
+import reactor.netty.resources.LoopResources;
 
 import java.time.Duration;
 import java.util.Map;
@@ -32,11 +34,26 @@ public interface HttpClient {
         private final WebClient webClient;
 
         public DefaultHttpClient() {
-            webClient = WebClient.builder()
-                    .clientConnector(new ReactorClientHttpConnector(reactor.netty.http.client.HttpClient.create()
-                            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-                            .responseTimeout(Duration.ofSeconds(30))
-                            .keepAlive(true))).build();
+            ConnectionProvider connectionProvider = ConnectionProvider.builder("high-concurrency-provider")
+                    .maxConnections(1000)
+                    .pendingAcquireTimeout(Duration.ofSeconds(30))
+                    .pendingAcquireMaxCount(2000)
+                    .maxIdleTime(Duration.ofSeconds(30))
+                    .maxLifeTime(Duration.ofMinutes(5))
+                    .evictInBackground(Duration.ofSeconds(10))
+                    .build();
+
+            LoopResources loopResources = LoopResources.create("fasf-reactor-io", Runtime.getRuntime().availableProcessors(), true);
+
+            reactor.netty.http.client.HttpClient nettyClient = reactor.netty.http.client.HttpClient.create(connectionProvider)
+                    .runOn(loopResources)
+                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
+                    .responseTimeout(Duration.ofSeconds(15))
+                    .keepAlive(true);
+
+            this.webClient = WebClient.builder()
+                    .clientConnector(new ReactorClientHttpConnector(nettyClient))
+                    .build();
         }
 
         @Override
@@ -93,8 +110,8 @@ public interface HttpClient {
         }
 
         private Throwable handleWebClientException(Throwable throwable) {
-            if (throwable instanceof WebClientResponseException ex) {
-                HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+            if (throwable instanceof WebClientResponseException webClientResponseException) {
+                HttpStatus status = HttpStatus.valueOf(webClientResponseException.getStatusCode().value());
                 logger.warn("Request encounter an error:{} {}", status.value(), status.getReasonPhrase());
                 return new HttpException(status);
             }

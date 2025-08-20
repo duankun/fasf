@@ -13,5 +13,8 @@ import java.util.concurrent.CompletableFuture;
 @Interceptors(requestInterceptors = {TraceIdInterceptor.class})
 public interface AMapApi {
     @Request(path = "/v3/config/district", method = HttpMethod.GET)
-    CompletableFuture<String> district(@GetParam("key") String key, @GetParam("keywords") String keywords, @GetParam("subdistrict") String subdistrict);
+    CompletableFuture<String> districtAsync(@GetParam("key") String key, @GetParam("keywords") String keywords, @GetParam("subdistrict") String subdistrict);
+
+    @Request(path = "/v3/config/district", method = HttpMethod.GET)
+    String district(@GetParam("key") String key, @GetParam("keywords") String keywords, @GetParam("subdistrict") String subdistrict);
 }
