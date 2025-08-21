@@ -81,9 +81,13 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 1. 定义API接口
 首先，像接入高德地图一样，您需要明确目标接口的具体信息，包括：
 接口地址
+
 请求参数
+
 请求方式
+
 响应数据格式
+
 然后在 fasf-api 模块内创建一个新的接口类，命名为 XXXApi，参考 org.fasf.api.AMapApi 的实现方式。
 
 >💡 默认包扫描：框架默认扫描 org.fasf.api 包下的接口并生成代理类。如果您的接口位于其他包下，可以通过修改 fasf-client 的配置文件来扩展扫描路径：
@@ -103,7 +107,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 > 
 >   CompletableFuture<String> result = xxxApi.yourMethod(params);
 
-此时，XXXApi 已经以Bean的形式存在于Spring容器中，您可以像使用 org.fasf.client.service.impl.AMapServiceImpl 一样轻松使用它
+此时，XXXApi 已经以Bean的形式存在于Spring容器中，您可以像 org.fasf.client.service.impl.AMapServiceImpl 一样轻松使用它
    
 ## 📋 兼容性
 
