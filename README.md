@@ -80,6 +80,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 通过以上介绍，您已经对FASF项目有了初步了解，并成功运行了高德地图调用示例。接下来，我们将一步步指导您完成自定义接口的接入：
 1. 定义API接口
 首先，像接入高德地图一样，您需要明确目标接口的具体信息，包括：
+
 接口地址
 
 请求参数
@@ -95,7 +96,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 > fasf.api.basePackages=org.fasf.api,{your package}
 2. 打包Starter
 将您的API模块打包成Spring Boot Starter：
-建议将 fasf-api 模块的 artifactId 修改为 XXX-fasf-api-spring-boot-starter
+建议将 fasf-api 模块的 artifactId 修改为 XXX-fasf-api-spring-boot-starter。例如AMap-fasf-api-spring-boot-starter作为高德地图api的starter
 3. 集成到项目
 将打包好的jar包添加到您的目标项目依赖中
 在项目中使用 XXXApi：
@@ -108,6 +109,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 >   CompletableFuture<String> result = xxxApi.yourMethod(params);
 
 此时，XXXApi 已经以Bean的形式存在于Spring容器中，您可以像 org.fasf.client.service.impl.AMapServiceImpl 一样轻松使用它
+>💡 关于 starter 的提供者，理想情况下应该是 api 的提供者，这样便于 api 接入方快速接入
    
 ## 📋 兼容性
 
