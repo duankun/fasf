@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 
@@ -32,6 +34,7 @@ public interface HttpClient {
     class DefaultHttpClient implements HttpClient {
         private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
         private final WebClient webClient;
+        private final Scheduler responseCallbackScheduler;
 
         public DefaultHttpClient() {
             ConnectionProvider connectionProvider = ConnectionProvider.builder("high-concurrency-provider")
@@ -54,6 +57,12 @@ public interface HttpClient {
             this.webClient = WebClient.builder()
                     .clientConnector(new ReactorClientHttpConnector(nettyClient))
                     .build();
+            int threadCount = Math.max(Runtime.getRuntime().availableProcessors() * 10, 100);
+            this.responseCallbackScheduler = Schedulers.newBoundedElastic(
+                    threadCount,
+                    10000,
+                    "fasf-response-callback-scheduler"
+            );
         }
 
         @Override
@@ -71,10 +80,11 @@ public interface HttpClient {
                     })
                     .retrieve()
                     .bodyToMono(String.class)
+                    .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
                             MDCUtils.setContextMap(contextMap);
-                            return handleWebClientException(throwable);
+                            return this.handleException(throwable);
                         } finally {
                             MDCUtils.cleanupMDC();
                         }
@@ -98,10 +108,11 @@ public interface HttpClient {
                     .bodyValue(request.getBody())
                     .retrieve()
                     .bodyToMono(String.class)
+                    .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
                             MDCUtils.setContextMap(contextMap);
-                            return handleWebClientException(throwable);
+                            return this.handleException(throwable);
                         } finally {
                             MDCUtils.cleanupMDC();
                         }
@@ -109,7 +120,7 @@ public interface HttpClient {
                     .toFuture();
         }
 
-        private Throwable handleWebClientException(Throwable throwable) {
+        private Throwable handleException(Throwable throwable) {
             if (throwable instanceof WebClientResponseException webClientResponseException) {
                 HttpStatus status = HttpStatus.valueOf(webClientResponseException.getStatusCode().value());
                 logger.warn("Request encounter an error:{} {}", status.value(), status.getReasonPhrase());
