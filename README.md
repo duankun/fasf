@@ -91,7 +91,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 > fasf.api.basePackages=org.fasf.api,{your package}
 2. 打包Starter
 将您的API模块打包成Spring Boot Starter：
-建议将 fasf-api 模块的 <artifactId> 修改为 XXX-fasf-api-spring-boot-starter
+建议将 fasf-api 模块的 artifactId 修改为 XXX-fasf-api-spring-boot-starter
 3. 集成到项目
 将打包好的jar包添加到您的目标项目依赖中
 在项目中使用 XXXApi：
