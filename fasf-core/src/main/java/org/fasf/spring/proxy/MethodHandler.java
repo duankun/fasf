@@ -47,8 +47,8 @@ public class MethodHandler {
         }
         return switch (request.method()) {
             case GET -> this.get(args, returnType);
-            case POST -> this.post(args[0], returnType);
-            case PUT -> this.put(args[0], returnType);
+            case POST -> this.post(args, returnType);
+            case PUT -> this.put(args, returnType);
             case DELETE -> this.delete(args, returnType);
             default -> throw new IllegalArgumentException("Unsupported method: " + request.method());
         };
@@ -125,12 +125,15 @@ public class MethodHandler {
                 .collect(Collectors.joining("&"));
     }
 
-    public <T> T post(Object body, Class<T> returnType) {
+    public <T> T post(Object[] args, Class<T> returnType) {
+        if (args != null && args.length > 1) {
+            logger.warn("POST request only uses the first argument as request body, other arguments are ignored");
+        }
         PostRequest postRequest = (PostRequest) new HttpRequest.HttpRequestBuilder()
                 .url(apiContext.getEndpoint() + request.path())
                 .method(HttpMethod.POST)
                 .header("Content-Type", request.contentType())
-                .body(body)
+                .body(args == null ? null : args[0])
                 .build();
         this.applyRequestInterceptors(postRequest);
         MDCUtils.setupMDC();
@@ -170,12 +173,15 @@ public class MethodHandler {
         return JSON.fromJson(originResponseBody, returnType);
     }
 
-    public <T> T put(Object body, Class<T> returnType) {
+    public <T> T put(Object[] args, Class<T> returnType) {
+        if (args != null && args.length > 1) {
+            logger.warn("PUT request only uses the first argument as request body, other arguments are ignored");
+        }
         PutRequest putRequest = (PutRequest) new HttpRequest.HttpRequestBuilder()
                 .url(apiContext.getEndpoint() + request.path())
                 .method(HttpMethod.PUT)
                 .header("Content-Type", request.contentType())
-                .body(body)
+                .body(args == null ? null : args[0])
                 .build();
         this.applyRequestInterceptors(putRequest);
         MDCUtils.setupMDC();
