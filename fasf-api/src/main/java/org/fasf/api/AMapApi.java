@@ -1,7 +1,7 @@
 package org.fasf.api;
 
 import org.fasf.annotation.Api;
-import org.fasf.annotation.GetParam;
+import org.fasf.annotation.QueryParam;
 import org.fasf.annotation.Interceptors;
 import org.fasf.annotation.Request;
 import org.fasf.http.HttpMethod;
@@ -13,8 +13,8 @@ import java.util.concurrent.CompletableFuture;
 @Interceptors(requestInterceptors = {TraceIdInterceptor.class})
 public interface AMapApi {
     @Request(path = "/v3/config/district", method = HttpMethod.GET)
-    CompletableFuture<String> districtAsync(@GetParam("key") String key, @GetParam("keywords") String keywords, @GetParam("subdistrict") String subdistrict);
+    CompletableFuture<String> districtAsync(@QueryParam("key") String key, @QueryParam("keywords") String keywords, @QueryParam("subdistrict") String subdistrict);
 
     @Request(path = "/v3/config/district", method = HttpMethod.GET)
-    String district(@GetParam("key") String key, @GetParam("keywords") String keywords, @GetParam("subdistrict") String subdistrict);
+    String district(@QueryParam("key") String key, @QueryParam("keywords") String keywords, @QueryParam("subdistrict") String subdistrict);
 }

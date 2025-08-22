@@ -22,6 +22,6 @@ public class ClassUtils {
                 }
             }
         }
-        return method.getReturnType();
+        return Void.class;
     }
 }

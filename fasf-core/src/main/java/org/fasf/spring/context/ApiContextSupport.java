@@ -29,6 +29,7 @@ public class ApiContextSupport {
 
     public void initRequestContext(Class<?> apiInterface) {
         Assert.notNull(apiInterface, "Api interface cannot be null");
+        apiContext.setApiInterface(apiInterface);
         Api api = apiInterface.getAnnotation(Api.class);
         apiContext.setEndpoint(api.endpoint());
         Interceptors classInterceptorsAnnotation = apiInterface.getAnnotation(Interceptors.class);

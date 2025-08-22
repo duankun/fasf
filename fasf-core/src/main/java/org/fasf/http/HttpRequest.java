@@ -77,13 +77,13 @@ public class HttpRequest {
         }
 
         public HttpRequest build() {
-            HttpRequest request = null;
-            if (method == HttpMethod.POST) {
-                request = new PostRequest(url, headers, originBody, body);
-            } else if (method == HttpMethod.GET) {
-                request = new GetRequest(url, queryParameters);
-            }
-            return request;
+            return switch (method) {
+                case POST -> new PostRequest(url, headers, originBody, body);
+                case GET -> new GetRequest(url, queryParameters);
+                case PUT -> new PutRequest(url, headers, originBody, body);
+                case DELETE -> new DeleteRequest(url, headers, queryParameters);
+                default -> throw new IllegalArgumentException("Invalid HTTP method:" + method);
+            };
         }
     }
 }

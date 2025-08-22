@@ -22,5 +22,5 @@ public interface OrderInfoApi {
 
     @Request(path = "/getOrderInfo", method = HttpMethod.GET)
     @Retryable
-    OrderInfoVO getOrderInfo(@GetParam("orderId") String orderId);
+    OrderInfoVO getOrderInfo(@QueryParam("orderId") String orderId);
 }

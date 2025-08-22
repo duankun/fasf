@@ -10,9 +10,18 @@ import java.util.Map;
 import java.util.Set;
 
 public class ApiContext {
+    private Class<?> apiInterface;
     private String endpoint;
     private final Map<Method, Set<RequestInterceptor>> requestInterceptors = new HashMap<>();
     private final Map<Method, ResponseInterceptor> responseInterceptors = new HashMap<>();
+
+    public Class<?> getApiInterface() {
+        return apiInterface;
+    }
+
+    public void setApiInterface(Class<?> apiInterface) {
+        this.apiInterface = apiInterface;
+    }
 
     public String getEndpoint() {
         return endpoint;

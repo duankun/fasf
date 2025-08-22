@@ -27,9 +27,21 @@ public interface HttpClient {
         return this.postAsync(request).join();
     }
 
+    default String put(PutRequest request) {
+        return this.putAsync(request).join();
+    }
+
+    default String delete(DeleteRequest request) {
+        return this.deleteAsync(request).join();
+    }
+
     CompletableFuture<String> getAsync(GetRequest request);
 
     CompletableFuture<String> postAsync(PostRequest request);
+
+    CompletableFuture<String> putAsync(PutRequest request);
+
+    CompletableFuture<String> deleteAsync(DeleteRequest request);
 
     class DefaultHttpClient implements HttpClient {
         private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
@@ -39,8 +51,8 @@ public interface HttpClient {
         public DefaultHttpClient() {
             ConnectionProvider connectionProvider = ConnectionProvider.builder("high-concurrency-provider")
                     .maxConnections(1000)
-                    .pendingAcquireTimeout(Duration.ofSeconds(30))
-                    .pendingAcquireMaxCount(2000)
+                    .pendingAcquireTimeout(Duration.ofSeconds(10))
+                    .pendingAcquireMaxCount(5000)
                     .maxIdleTime(Duration.ofSeconds(30))
                     .maxLifeTime(Duration.ofMinutes(5))
                     .evictInBackground(Duration.ofSeconds(10))
@@ -106,6 +118,61 @@ public interface HttpClient {
                         }
                     })
                     .bodyValue(request.getBody())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .publishOn(responseCallbackScheduler)
+                    .onErrorMap(throwable -> {
+                        try {
+                            MDCUtils.setContextMap(contextMap);
+                            return this.handleException(throwable);
+                        } finally {
+                            MDCUtils.cleanupMDC();
+                        }
+                    })
+                    .toFuture();
+        }
+
+        @Override
+        public CompletableFuture<String> putAsync(PutRequest request) {
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
+            if (logger.isDebugEnabled()) {
+                logger.debug("HTTP PutRequest: {}", request);
+            }
+            return webClient.put()
+                    .uri(request.getUrl())
+                    .headers(httpHeaders -> {
+                        if (request.getHeaders() != null) {
+                            request.getHeaders().forEach(httpHeaders::add);
+                        }
+                    })
+                    .bodyValue(request.getBody())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .publishOn(responseCallbackScheduler)
+                    .onErrorMap(throwable -> {
+                        try {
+                            MDCUtils.setContextMap(contextMap);
+                            return this.handleException(throwable);
+                        } finally {
+                            MDCUtils.cleanupMDC();
+                        }
+                    })
+                    .toFuture();
+        }
+
+        @Override
+        public CompletableFuture<String> deleteAsync(DeleteRequest request) {
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
+            if (logger.isDebugEnabled()) {
+                logger.debug("HTTP DeleteRequest: {}", request);
+            }
+            return webClient.delete()
+                    .uri(request.getUrl())
+                    .headers(httpHeaders -> {
+                        if (request.getHeaders() != null) {
+                            request.getHeaders().forEach(httpHeaders::add);
+                        }
+                    })
                     .retrieve()
                     .bodyToMono(String.class)
                     .publishOn(responseCallbackScheduler)
