@@ -15,14 +15,12 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
+import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -42,8 +40,8 @@ public class MethodHandler {
 
     public Object invoke(Object[] args) {
         Class<?> returnType = method.getReturnType();
-        if (CompletableFuture.class.isAssignableFrom(returnType) && method.getAnnotation(Retryable.class) != null) {
-            throw new RuntimeException("Retry is not supported when returnType is specified by CompletableFuture,you can retry manually");
+        if (Mono.class.isAssignableFrom(returnType) && method.getAnnotation(Retryable.class) != null) {
+            throw new RuntimeException("Retry is not supported when returnType is specified by Mono,you can retry manually");
         }
         return switch (request.method()) {
             case GET -> this.get(args, returnType);
@@ -60,43 +58,48 @@ public class MethodHandler {
                 .method(HttpMethod.GET)
                 .queryParameters(queryParameters)
                 .build();
-        this.applyRequestInterceptors(getRequest);
-        getRequest.setUrl(this.buildUrlWithQueryParameters(apiContext.getEndpoint() + request.path(), getRequest.getQueryParameters()));
         MDCUtils.setupMDC();
         try {
+            this.applyRequestInterceptors(getRequest);
+            getRequest.setUrl(this.buildUrlWithQueryParameters(apiContext.getEndpoint() + request.path(), getRequest.getQueryParameters()));
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute get method:{}", method);
             }
-            //noinspection unchecked
-            return CompletableFuture.class.isAssignableFrom(returnType) ? (T) this.getFuture(getRequest) : this.get(getRequest, returnType);
+            Mono<HttpResponse> mono = httpClient.getAsync(getRequest);
+            return this.getReturn(mono, getRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
         }
     }
 
-    public <T> CompletableFuture<T> getFuture(GetRequest request) {
+    private <T> T getReturn(Mono<HttpResponse> mono, HttpRequest request, Class<T> returnType) {
         Map<String, String> mdcContext = MDC.getCopyOfContextMap();
-        CompletableFuture<String> future = httpClient.getAsync(request);
-        return future.thenApply(responseString -> {
+        mono = mono.map(httpResponse -> {
             MDCUtils.setContextMap(mdcContext);
             try {
-                //noinspection unchecked
-                return JSON.fromJson(this.applyResponseInterceptor(responseString), (Class<T>) ClassUtils.getGenericReturnType(method));
+                return this.applyResponseInterceptor(httpResponse);
             } finally {
                 MDCUtils.cleanupMDC();
             }
         });
-    }
-
-    private <T> T get(GetRequest request, Class<T> returnType) {
-        String originResponseBody;
-        try {
-            originResponseBody = httpClient.get(request);
-        } catch (Exception e) {
-            originResponseBody = this.handleExceptionAndRetry(request, e);
+        if (Mono.class.isAssignableFrom(returnType)) {
+            Class<?> genericReturnType = ClassUtils.getGenericReturnType(method);
+            if (HttpResponse.class.isAssignableFrom(genericReturnType)) {
+                //noinspection unchecked
+                return (T) mono;
+            } else {
+                //noinspection unchecked
+                return (T) mono.map(response -> JSON.fromJson(response.getBodyAsString(), genericReturnType));
+            }
+        } else {
+            T t;
+            try {
+                t = mono.map(httpResponse -> JSON.fromJson(httpResponse.getBodyAsString(), returnType)).block();
+            } catch (Exception e) {
+                t = JSON.fromJson(this.handleExceptionAndRetry(request, e).getBodyAsString(), returnType);
+            }
+            return t;
         }
-        originResponseBody = this.applyResponseInterceptor(originResponseBody);
-        return JSON.fromJson(originResponseBody, returnType);
     }
 
     private Map<String, String> resolveQueryParameters(Object[] args) {
@@ -141,36 +144,11 @@ public class MethodHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute post method:{}", method);
             }
-            //noinspection unchecked
-            return CompletableFuture.class.isAssignableFrom(returnType) ? (T) this.postFuture(postRequest) : this.post(postRequest, returnType);
+            Mono<HttpResponse> mono = httpClient.postAsync(postRequest);
+            return this.getReturn(mono, postRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
         }
-    }
-
-    public <T> CompletableFuture<T> postFuture(PostRequest request) {
-        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
-        CompletableFuture<String> future = httpClient.postAsync(request);
-        return future.thenApply(responseString -> {
-            MDCUtils.setContextMap(mdcContext);
-            try {
-                //noinspection unchecked
-                return JSON.fromJson(this.applyResponseInterceptor(responseString), (Class<T>) ClassUtils.getGenericReturnType(method));
-            } finally {
-                MDCUtils.cleanupMDC();
-            }
-        });
-    }
-
-    private <T> T post(PostRequest request, Class<T> returnType) {
-        String originResponseBody;
-        try {
-            originResponseBody = httpClient.post(request);
-        } catch (Exception e) {
-            originResponseBody = this.handleExceptionAndRetry(request, e);
-        }
-        originResponseBody = this.applyResponseInterceptor(originResponseBody);
-        return JSON.fromJson(originResponseBody, returnType);
     }
 
     public <T> T put(Object[] args, Class<T> returnType) {
@@ -189,43 +167,18 @@ public class MethodHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute put method:{}", method);
             }
-            //noinspection unchecked
-            return CompletableFuture.class.isAssignableFrom(returnType) ? (T) this.putFuture(putRequest) : this.put(putRequest, returnType);
+            Mono<HttpResponse> mono = httpClient.putAsync(putRequest);
+
+            return this.getReturn(mono, putRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
         }
     }
 
-    public <T> CompletableFuture<T> putFuture(PutRequest request) {
-        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
-        CompletableFuture<String> future = httpClient.putAsync(request);
-        return future.thenApply(responseString -> {
-            MDCUtils.setContextMap(mdcContext);
-            try {
-                //noinspection unchecked
-                return JSON.fromJson(this.applyResponseInterceptor(responseString), (Class<T>) ClassUtils.getGenericReturnType(method));
-            } finally {
-                MDCUtils.cleanupMDC();
-            }
-        });
-    }
-
-    private <T> T put(PutRequest request, Class<T> returnType) {
-        this.applyRequestInterceptors(request);
-        String originResponseBody;
-        try {
-            originResponseBody = httpClient.put(request);
-        } catch (Exception e) {
-            originResponseBody = this.handleExceptionAndRetry(request, e);
-        }
-        originResponseBody = this.applyResponseInterceptor(originResponseBody);
-        return JSON.fromJson(originResponseBody, returnType);
-    }
-
     public <T> T delete(Object[] args, Class<T> returnType) {
         Map<String, String> queryParameters = this.resolveQueryParameters(args);
         DeleteRequest deleteRequest = (DeleteRequest) new HttpRequest.HttpRequestBuilder()
-                .method(HttpMethod.GET)
+                .method(HttpMethod.DELETE)
                 .queryParameters(queryParameters)
                 .build();
         this.applyRequestInterceptors(deleteRequest);
@@ -235,38 +188,12 @@ public class MethodHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute delete method:{}", method);
             }
-            //noinspection unchecked
-            return CompletableFuture.class.isAssignableFrom(returnType) ? (T) this.deleteFuture(deleteRequest) : this.delete(deleteRequest, returnType);
+            Mono<HttpResponse> mono = httpClient.deleteAsync(deleteRequest);
+            return this.getReturn(mono, deleteRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
         }
     }
-
-    public <T> CompletableFuture<T> deleteFuture(DeleteRequest request) {
-        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
-        CompletableFuture<String> future = httpClient.deleteAsync(request);
-        return future.thenApply(responseString -> {
-            MDCUtils.setContextMap(mdcContext);
-            try {
-                //noinspection unchecked
-                return JSON.fromJson(this.applyResponseInterceptor(responseString), (Class<T>) ClassUtils.getGenericReturnType(method));
-            } finally {
-                MDCUtils.cleanupMDC();
-            }
-        });
-    }
-
-    private <T> T delete(DeleteRequest request, Class<T> returnType) {
-        String originResponseBody;
-        try {
-            originResponseBody = httpClient.delete(request);
-        } catch (Exception e) {
-            originResponseBody = this.handleExceptionAndRetry(request, e);
-        }
-        originResponseBody = this.applyResponseInterceptor(originResponseBody);
-        return JSON.fromJson(originResponseBody, returnType);
-    }
-
 
     private void applyRequestInterceptors(HttpRequest request) {
         Set<RequestInterceptor> requestInterceptors = apiContext.getRequestInterceptors(method);
@@ -278,65 +205,60 @@ public class MethodHandler {
         }
     }
 
-    private String applyResponseInterceptor(String originResponseString) {
+    private HttpResponse applyResponseInterceptor(HttpResponse httpResponse) {
         ResponseInterceptor responseInterceptor = apiContext.getResponseInterceptor(method);
         if (responseInterceptor != null) {
-            String interceptedResponseString = responseInterceptor.intercept(originResponseString);
+            String responseInterceptorName = responseInterceptor.getClass().getName();
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply response interceptor:{} ,before={}, after={}", responseInterceptor, originResponseString, interceptedResponseString);
+                logger.debug("Apply response interceptor:{} ,before={}", responseInterceptorName, httpResponse);
             }
-            return interceptedResponseString;
+            responseInterceptor.intercept(httpResponse);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Apply response interceptor:{} ,after={}", responseInterceptorName, httpResponse);
+            }
         }
-        return originResponseString;
+        return httpResponse;
     }
 
-    private String handleExceptionAndRetry(HttpRequest request, Exception exception) {
+    private HttpResponse handleExceptionAndRetry(HttpRequest request, Exception exception) {
         Retryable retryable = method.getAnnotation(Retryable.class);
         if (retryable == null) {
             throw new RuntimeException(exception);
         }
-        if (exception instanceof CompletionException completionException) {
-            Throwable cause = completionException.getCause();
-            if (cause instanceof HttpException httpException && httpException.retryable()) {
-                return this.retry(request, retryable);
-            }
+        if (exception instanceof HttpException httpException && httpException.retryable()) {
+            return this.retry(request, retryable);
         }
         throw new RuntimeException(exception);
     }
 
-    private String retry(HttpRequest request, Retryable retryable) {
-        String originResponseString = null;
+    private HttpResponse retry(HttpRequest request, Retryable retryable) {
+        HttpResponse httpResponse = null;
         for (int i = 0; i < retryable.maxAttempts(); i++) {
             try {
                 logger.debug("Retrying request, attempt {}/{}", i + 1, retryable.maxAttempts());
                 TimeUnit.MILLISECONDS.sleep(retryable.delay());
                 switch (request) {
-                    case GetRequest getRequest -> originResponseString = httpClient.get(getRequest);
-                    case PutRequest putRequest -> originResponseString = httpClient.put(putRequest);
-                    case PostRequest postRequest -> originResponseString = httpClient.post(postRequest);
-                    case DeleteRequest deleteRequest -> originResponseString = httpClient.delete(deleteRequest);
+                    case GetRequest getRequest -> httpResponse = httpClient.getAsync(getRequest).block();
+                    case PutRequest putRequest -> httpResponse = httpClient.putAsync(putRequest).block();
+                    case PostRequest postRequest -> httpResponse = httpClient.postAsync(postRequest).block();
+                    case DeleteRequest deleteRequest -> httpResponse = httpClient.deleteAsync(deleteRequest).block();
                     default ->
                             throw new IllegalArgumentException("Unsupported request type: " + request.getClass().getName());
                 }
                 break;
             } catch (Exception e) {
-                if (e instanceof CompletionException completionException) {
-                    Throwable cause = completionException.getCause();
-                    if (cause instanceof HttpException httpException) {
-                        if (!httpException.retryable()) {
-                            throw httpException;
-                        }
-                    } else {
-                        throw new RuntimeException(e);
+                if (e instanceof HttpException httpException) {
+                    if (!httpException.retryable()) {
+                        throw httpException;
                     }
                 } else {
                     throw new RuntimeException(e);
                 }
             }
         }
-        if (!StringUtils.hasText(originResponseString)) {
+        if (httpResponse == null) {
             throw new HttpException(500, "Request failed after retry " + retryable.maxAttempts() + " times");
         }
-        return originResponseString;
+        return httpResponse;
     }
 }

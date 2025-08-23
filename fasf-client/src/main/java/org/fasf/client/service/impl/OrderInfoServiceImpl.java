@@ -6,20 +6,20 @@ import org.fasf.model.vo.OrderInfoVO;
 import org.fasf.util.JSON;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
-import java.util.concurrent.CompletableFuture;
-
-//@Service
+@Service
 public class OrderInfoServiceImpl implements InitializingBean {
     @Autowired
     private OrderInfoApi orderInfoApi;
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        OrderInfoVO orderInfo = orderInfoApi.getOrderInfo("12345");
-        System.out.println(JSON.toJson(orderInfo));
+        Mono<OrderInfoVO> mono = orderInfoApi.getOrderInfo("12345");
+        System.out.println(JSON.toJson(mono.block()));
 
-        CompletableFuture<OrderInfoVO> future = orderInfoApi.getOrderInfo(new OrderInfoRO("12345"));
-        System.out.println(JSON.toJson(future.join()));
+        OrderInfoVO orderInfo = orderInfoApi.getOrderInfo(new OrderInfoRO("12345"));
+        System.out.println(JSON.toJson(orderInfo));
     }
 }

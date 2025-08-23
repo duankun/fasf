@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.netty.resources.ConnectionProvider;
@@ -16,32 +17,15 @@ import reactor.netty.resources.LoopResources;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public interface HttpClient {
-    default String get(GetRequest request) {
-        return this.getAsync(request).join();
-    }
+    Mono<HttpResponse> getAsync(GetRequest request);
 
-    default String post(PostRequest request) {
-        return this.postAsync(request).join();
-    }
+    Mono<HttpResponse> postAsync(PostRequest request);
 
-    default String put(PutRequest request) {
-        return this.putAsync(request).join();
-    }
+    Mono<HttpResponse> putAsync(PutRequest request);
 
-    default String delete(DeleteRequest request) {
-        return this.deleteAsync(request).join();
-    }
-
-    CompletableFuture<String> getAsync(GetRequest request);
-
-    CompletableFuture<String> postAsync(PostRequest request);
-
-    CompletableFuture<String> putAsync(PutRequest request);
-
-    CompletableFuture<String> deleteAsync(DeleteRequest request);
+    Mono<HttpResponse> deleteAsync(DeleteRequest request);
 
     class DefaultHttpClient implements HttpClient {
         private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
@@ -78,7 +62,7 @@ public interface HttpClient {
         }
 
         @Override
-        public CompletableFuture<String> getAsync(GetRequest request) {
+        public Mono<HttpResponse> getAsync(GetRequest request) {
             Map<String, String> contextMap = MDC.getCopyOfContextMap();
             if (logger.isDebugEnabled()) {
                 logger.debug("HTTP GetRequest: {}", request);
@@ -89,9 +73,13 @@ public interface HttpClient {
                         if (request.getHeaders() != null) {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
+                    }).exchangeToMono(clientResponse -> {
+                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
+                        if (httpStatus.isError()) {
+                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
+                        }
+                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
                     })
-                    .retrieve()
-                    .bodyToMono(String.class)
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
@@ -100,12 +88,11 @@ public interface HttpClient {
                         } finally {
                             MDCUtils.cleanupMDC();
                         }
-                    })
-                    .toFuture();
+                    });
         }
 
         @Override
-        public CompletableFuture<String> postAsync(PostRequest request) {
+        public Mono<HttpResponse> postAsync(PostRequest request) {
             Map<String, String> contextMap = MDC.getCopyOfContextMap();
             if (logger.isDebugEnabled()) {
                 logger.debug("HTTP PostRequest: {}", request);
@@ -118,8 +105,13 @@ public interface HttpClient {
                         }
                     })
                     .bodyValue(request.getBody())
-                    .retrieve()
-                    .bodyToMono(String.class)
+                    .exchangeToMono(clientResponse -> {
+                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
+                        if (httpStatus.isError()) {
+                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
+                        }
+                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
+                    })
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
@@ -128,12 +120,11 @@ public interface HttpClient {
                         } finally {
                             MDCUtils.cleanupMDC();
                         }
-                    })
-                    .toFuture();
+                    });
         }
 
         @Override
-        public CompletableFuture<String> putAsync(PutRequest request) {
+        public Mono<HttpResponse> putAsync(PutRequest request) {
             Map<String, String> contextMap = MDC.getCopyOfContextMap();
             if (logger.isDebugEnabled()) {
                 logger.debug("HTTP PutRequest: {}", request);
@@ -145,9 +136,13 @@ public interface HttpClient {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
                     })
-                    .bodyValue(request.getBody())
-                    .retrieve()
-                    .bodyToMono(String.class)
+                    .exchangeToMono(clientResponse -> {
+                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
+                        if (httpStatus.isError()) {
+                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
+                        }
+                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
+                    })
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
@@ -156,12 +151,11 @@ public interface HttpClient {
                         } finally {
                             MDCUtils.cleanupMDC();
                         }
-                    })
-                    .toFuture();
+                    });
         }
 
         @Override
-        public CompletableFuture<String> deleteAsync(DeleteRequest request) {
+        public Mono<HttpResponse> deleteAsync(DeleteRequest request) {
             Map<String, String> contextMap = MDC.getCopyOfContextMap();
             if (logger.isDebugEnabled()) {
                 logger.debug("HTTP DeleteRequest: {}", request);
@@ -173,8 +167,13 @@ public interface HttpClient {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
                     })
-                    .retrieve()
-                    .bodyToMono(String.class)
+                    .exchangeToMono(clientResponse -> {
+                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
+                        if (httpStatus.isError()) {
+                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
+                        }
+                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
+                    })
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
@@ -183,8 +182,7 @@ public interface HttpClient {
                         } finally {
                             MDCUtils.cleanupMDC();
                         }
-                    })
-                    .toFuture();
+                    });
         }
 
         private Throwable handleException(Throwable throwable) {

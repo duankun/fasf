@@ -1,10 +1,13 @@
 package org.fasf.interceptor;
 
+import org.fasf.http.HttpResponse;
+
 public interface ResponseInterceptor {
-    String intercept(String originResponseBody);
+    void intercept(HttpResponse httpResponse);
+
     class NoOpResponseInterceptor implements ResponseInterceptor {
-        public String intercept(String originResponseBody) {
-            return originResponseBody;
+        public void intercept(HttpResponse httpResponse) {
+
         }
     }
 }
