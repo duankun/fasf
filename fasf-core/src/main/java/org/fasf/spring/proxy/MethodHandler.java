@@ -16,12 +16,13 @@ import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class MethodHandler {
@@ -40,9 +41,6 @@ public class MethodHandler {
 
     public Object invoke(Object[] args) {
         Class<?> returnType = method.getReturnType();
-        if (Mono.class.isAssignableFrom(returnType) && method.getAnnotation(Retryable.class) != null) {
-            throw new RuntimeException("Retry is not supported when returnType is specified by Mono,you can retry manually");
-        }
         return switch (request.method()) {
             case GET -> this.get(args, returnType);
             case POST -> this.post(args, returnType);
@@ -65,40 +63,9 @@ public class MethodHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute get method:{}", method);
             }
-            Mono<HttpResponse> mono = httpClient.getAsync(getRequest);
-            return this.getReturn(mono, getRequest, returnType);
+            return this.getReturn(getRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
-        }
-    }
-
-    private <T> T getReturn(Mono<HttpResponse> mono, HttpRequest request, Class<T> returnType) {
-        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
-        mono = mono.map(httpResponse -> {
-            MDCUtils.setContextMap(mdcContext);
-            try {
-                return this.applyResponseInterceptor(httpResponse);
-            } finally {
-                MDCUtils.cleanupMDC();
-            }
-        });
-        if (Mono.class.isAssignableFrom(returnType)) {
-            Class<?> genericReturnType = ClassUtils.getGenericReturnType(method);
-            if (HttpResponse.class.isAssignableFrom(genericReturnType)) {
-                //noinspection unchecked
-                return (T) mono;
-            } else {
-                //noinspection unchecked
-                return (T) mono.map(response -> JSON.fromJson(response.getBodyAsString(), genericReturnType));
-            }
-        } else {
-            T t;
-            try {
-                t = mono.map(httpResponse -> JSON.fromJson(httpResponse.getBodyAsString(), returnType)).block();
-            } catch (Exception e) {
-                t = JSON.fromJson(this.handleExceptionAndRetry(request, e).getBodyAsString(), returnType);
-            }
-            return t;
         }
     }
 
@@ -144,8 +111,7 @@ public class MethodHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute post method:{}", method);
             }
-            Mono<HttpResponse> mono = httpClient.postAsync(postRequest);
-            return this.getReturn(mono, postRequest, returnType);
+            return this.getReturn(postRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
         }
@@ -167,9 +133,7 @@ public class MethodHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute put method:{}", method);
             }
-            Mono<HttpResponse> mono = httpClient.putAsync(putRequest);
-
-            return this.getReturn(mono, putRequest, returnType);
+            return this.getReturn(putRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
         }
@@ -188,8 +152,7 @@ public class MethodHandler {
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute delete method:{}", method);
             }
-            Mono<HttpResponse> mono = httpClient.deleteAsync(deleteRequest);
-            return this.getReturn(mono, deleteRequest, returnType);
+            return this.getReturn(deleteRequest, returnType);
         } finally {
             MDCUtils.cleanupMDC();
         }
@@ -220,45 +183,87 @@ public class MethodHandler {
         return httpResponse;
     }
 
-    private HttpResponse handleExceptionAndRetry(HttpRequest request, Exception exception) {
+    private <T> T getReturn(HttpRequest request, Class<T> returnType) {
         Retryable retryable = method.getAnnotation(Retryable.class);
-        if (retryable == null) {
-            throw new RuntimeException(exception);
+        Mono<HttpResponse> mono = this.retryWrapper(request, retryable);
+        if (Mono.class.isAssignableFrom(returnType)) {
+            Class<?> genericReturnType = ClassUtils.getGenericReturnType(method);
+            if (HttpResponse.class.isAssignableFrom(genericReturnType)) {
+                //noinspection unchecked
+                return (T) mono;
+            } else {
+                //noinspection unchecked
+                return (T) mono.map(response -> JSON.fromJson(response.getBodyAsString(), genericReturnType));
+            }
+        } else {
+            HttpResponse httpResponse = mono.block();
+            return httpResponse == null ? null : JSON.fromJson(httpResponse.getBodyAsString(), returnType);
         }
-        if (exception instanceof HttpException httpException && httpException.retryable()) {
-            return this.retry(request, retryable);
-        }
-        throw new RuntimeException(exception);
     }
 
-    private HttpResponse retry(HttpRequest request, Retryable retryable) {
-        HttpResponse httpResponse = null;
-        for (int i = 0; i < retryable.maxAttempts(); i++) {
-            try {
-                logger.debug("Retrying request, attempt {}/{}", i + 1, retryable.maxAttempts());
-                TimeUnit.MILLISECONDS.sleep(retryable.delay());
-                switch (request) {
-                    case GetRequest getRequest -> httpResponse = httpClient.getAsync(getRequest).block();
-                    case PutRequest putRequest -> httpResponse = httpClient.putAsync(putRequest).block();
-                    case PostRequest postRequest -> httpResponse = httpClient.postAsync(postRequest).block();
-                    case DeleteRequest deleteRequest -> httpResponse = httpClient.deleteAsync(deleteRequest).block();
-                    default ->
-                            throw new IllegalArgumentException("Unsupported request type: " + request.getClass().getName());
-                }
-                break;
-            } catch (Exception e) {
-                if (e instanceof HttpException httpException) {
-                    if (!httpException.retryable()) {
-                        throw httpException;
+    private Mono<HttpResponse> retryWrapper(HttpRequest request, Retryable retryable) {
+        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+        Mono<HttpResponse> mono = retryable == null ? this.getMono(request) : Mono.defer(() -> {
+                    MDCUtils.setContextMap(mdcContext);
+                    try {
+                        return this.getMono(request);
+                    } finally {
+                        MDCUtils.cleanupMDC();
                     }
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-        if (httpResponse == null) {
-            throw new HttpException(500, "Request failed after retry " + retryable.maxAttempts() + " times");
-        }
-        return httpResponse;
+                }).retryWhen(Retry.backoff(retryable.maxAttempts(), Duration.ofSeconds(retryable.delay()))
+                        .maxBackoff(Duration.ofSeconds(retryable.maxBackoff()))
+                        .filter(throwable -> {
+                            MDCUtils.setContextMap(mdcContext);
+                            try {
+                                logger.debug("Retrying request due to: {}", throwable.getMessage());
+                                if (throwable instanceof HttpException httpException) {
+                                    return httpException.retryable();
+                                }
+                                return false;
+                            } finally {
+                                MDCUtils.cleanupMDC();
+                            }
+                        })
+                        .doBeforeRetry(retrySignal -> {
+                            MDCUtils.setContextMap(mdcContext);
+                            try {
+                                logger.debug("Retrying request, attempt {}/{}",
+                                        retrySignal.totalRetries() + 1,
+                                        retryable.maxAttempts());
+                            } finally {
+                                MDCUtils.cleanupMDC();
+                            }
+                        })
+                        .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+                            Throwable failure = retrySignal.failure();
+                            if (failure instanceof HttpException httpException) {
+                                return httpException;
+                            }
+                            return new HttpException(500, "Request failed after " + retryable.maxAttempts() + " attempts", failure);
+                        })
+                )
+                .onErrorResume(throwable -> {
+                    MDCUtils.setContextMap(mdcContext);
+                    try {
+                        logger.debug("Request failed after retry {} times", retryable.maxAttempts());
+                        if (throwable instanceof HttpException) {
+                            return Mono.error(throwable);
+                        }
+                        return Mono.error(new HttpException(500, "Request failed after retry " + retryable.maxAttempts() + " times", throwable));
+                    } finally {
+                        MDCUtils.cleanupMDC();
+                    }
+                });
+        return mono.map(this::applyResponseInterceptor);
+    }
+
+    private Mono<HttpResponse> getMono(HttpRequest request) {
+        return switch (request) {
+            case GetRequest getRequest -> httpClient.getAsync(getRequest);
+            case PutRequest putRequest -> httpClient.putAsync(putRequest);
+            case PostRequest postRequest -> httpClient.postAsync(postRequest);
+            case DeleteRequest deleteRequest -> httpClient.deleteAsync(deleteRequest);
+            default -> throw new IllegalArgumentException("Unsupported request type: " + request.getClass().getName());
+        };
     }
 }

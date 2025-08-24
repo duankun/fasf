@@ -8,5 +8,7 @@ import java.lang.annotation.*;
 public @interface Retryable {
     int maxAttempts() default 3;
     // ms
-    int delay() default 1000;
+    int delay() default 2;
+    //
+    int maxBackoff() default 10;
 }

@@ -21,5 +21,6 @@ public interface OrderInfoApi {
     OrderInfoVO getOrderInfo(OrderInfoRO orderInfoRO);
 
     @Request(path = "/getOrderInfo", method = HttpMethod.GET)
+    @Retryable
     Mono<OrderInfoVO> getOrderInfo(@QueryParam("orderId") String orderId);
 }
