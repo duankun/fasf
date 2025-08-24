@@ -10,24 +10,21 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ApiContextSupport {
-    @Autowired(required = false)
-    private List<RequestInterceptor> requestInterceptors;
-    @Autowired(required = false)
-    private List<ResponseInterceptor> responseInterceptors;
     private final ApiContext apiContext = new ApiContext();
+    @Autowired(required = false)
+    private final List<RequestInterceptor> requestInterceptors = Collections.emptyList();
+    @Autowired(required = false)
+    private final List<ResponseInterceptor> responseInterceptors = Collections.emptyList();
 
     public ApiContext getApiContext() {
         return apiContext;
     }
 
-    public void initRequestContext(Class<?> apiInterface) {
+    public void initApiContext(Class<?> apiInterface) {
         Assert.notNull(apiInterface, "Api interface cannot be null");
         apiContext.setApiInterface(apiInterface);
         Api api = apiInterface.getAnnotation(Api.class);

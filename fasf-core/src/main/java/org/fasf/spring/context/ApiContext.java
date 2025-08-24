@@ -41,7 +41,12 @@ public class ApiContext {
 
     public void addRequestInterceptors(Method method, Set<RequestInterceptor> interceptors) {
         if (!CollectionUtils.isEmpty(interceptors)) {
-            this.requestInterceptors.put(method, interceptors);
+            Set<RequestInterceptor> methodInterceptors = this.requestInterceptors.get(method);
+            if (methodInterceptors == null) {
+                this.requestInterceptors.put(method, interceptors);
+            } else {
+                methodInterceptors.addAll(interceptors);
+            }
         }
     }
 

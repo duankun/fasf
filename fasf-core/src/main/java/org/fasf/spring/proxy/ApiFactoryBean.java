@@ -33,6 +33,6 @@ public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        super.initRequestContext(apiInterface);
+        super.initApiContext(apiInterface);
     }
 }
