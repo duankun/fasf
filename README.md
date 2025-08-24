@@ -49,8 +49,8 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 - 支持高并发场景
 
 ### 异步处理能力
-- 全面支持CompletableFuture异步编程模型
-- 通过定义API返回参数为CompletableFuture<T>即可获得异步实例
+- 全面支持Mono异步编程模型
+- 通过定义API返回参数为Mono\<T\>即可获得异步实例
 
 ### 监控和日志
 - 集成MDC上下文传递机制
@@ -59,7 +59,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 
 ### 可扩展性
 提供多个扩展点：
-- **HttpClient**: 可自定义HTTP客户端实现
+- **HttpClient**: 可自定义HttpClient实现，通过 @Bean 注册到容器中使用，如果未提供，系统将提供一个默认的基于 WebClient 的 DefaultHttpClient 实例，您也可以通过 @Bean 提供一个自定义参数配置的 DefaultHttpClient 实例
 - **RequestInterceptor**: 请求拦截器，支持数据加密、添加请求头等
 - **ResponseInterceptor**: 响应拦截器，支持数据解密等操作
 
@@ -85,7 +85,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 > fasf.api.basePackages=org.fasf.api,{your package}
 2. 打包Starter
 将您的API模块打包成Spring Boot Starter：
-建议将 fasf-api 模块的 artifactId 修改为 XXX-fasf-api-spring-boot-starter。例如AMap-fasf-api-spring-boot-starter作为高德地图api的starter
+建议将 fasf-api 模块的 \<artifactId\> 修改为 XXX-fasf-api-spring-boot-starter。例如AMap-fasf-api-spring-boot-starter作为高德地图api的starter
 3. 集成到项目
 将打包好的jar包添加到您的目标项目依赖中
 在项目中使用 XXXApi：
@@ -95,10 +95,10 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 > 
 >  // 像使用本地方法一样调用远程接口
 > 
->   CompletableFuture<String> result = xxxApi.yourMethod(params);
+>   Mono\<VO\> result = xxxApi.yourMethod(params);
 
 此时，XXXApi 已经以Bean的形式存在于Spring容器中，您可以像 org.fasf.client.service.impl.AMapServiceImpl 一样轻松使用它
->💡 关于 starter 的提供者，理想情况下应该是 api 的提供者，这样便于 api 接入方快速接入
+>💡 关于 starter 的提供者，我们期望的情形是 api 的提供者，这样便于 api 接入方快速接入
    
 ## 📋 兼容性
 
