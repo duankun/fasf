@@ -210,7 +210,8 @@ public class MethodHandler {
                     } finally {
                         MDCUtils.cleanupMDC();
                     }
-                }).retryWhen(Retry.backoff(retryable.maxAttempts(), Duration.ofSeconds(retryable.delay()))
+                })
+                .retryWhen(Retry.backoff(retryable.maxAttempts(), Duration.ofSeconds(retryable.delay()))
                         .maxBackoff(Duration.ofSeconds(retryable.maxBackoff()))
                         .filter(throwable -> {
                             MDCUtils.setContextMap(mdcContext);
@@ -254,7 +255,14 @@ public class MethodHandler {
                         MDCUtils.cleanupMDC();
                     }
                 });
-        return mono.map(this::applyResponseInterceptor);
+        return mono.map(httpResponse -> {
+            MDCUtils.setContextMap(mdcContext);
+            try{
+                return this.applyResponseInterceptor(httpResponse);
+            } finally {
+                MDCUtils.cleanupMDC();
+            }
+        });
     }
 
     private Mono<HttpResponse> getMono(HttpRequest request) {

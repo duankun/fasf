@@ -6,9 +6,8 @@ import org.fasf.model.vo.OrderInfoVO;
 import org.fasf.util.JSON;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
-@Service
+//@Service
 public class OrderInfoServiceImpl implements InitializingBean {
     @Autowired
     private OrderInfoApi orderInfoApi;
