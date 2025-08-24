@@ -32,6 +32,17 @@ public interface HttpClient {
         private final WebClient webClient;
         private final Scheduler responseCallbackScheduler;
 
+        public DefaultHttpClient(WebClient webClient, Scheduler responseCallbackScheduler) {
+            this.webClient = webClient;
+            this.responseCallbackScheduler = responseCallbackScheduler;
+        }
+
+        public DefaultHttpClient(reactor.netty.http.client.HttpClient httpClient, Scheduler responseCallbackScheduler) {
+            this(WebClient.builder()
+                    .clientConnector(new ReactorClientHttpConnector(httpClient))
+                    .build(), responseCallbackScheduler);
+        }
+
         public DefaultHttpClient() {
             ConnectionProvider connectionProvider = ConnectionProvider.builder("high-concurrency-provider")
                     .maxConnections(1000)
@@ -44,14 +55,14 @@ public interface HttpClient {
 
             LoopResources loopResources = LoopResources.create("fasf-reactor-io", Runtime.getRuntime().availableProcessors(), true);
 
-            reactor.netty.http.client.HttpClient nettyClient = reactor.netty.http.client.HttpClient.create(connectionProvider)
+            reactor.netty.http.client.HttpClient httpClient = reactor.netty.http.client.HttpClient.create(connectionProvider)
                     .runOn(loopResources)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
                     .responseTimeout(Duration.ofSeconds(15))
                     .keepAlive(true);
 
             this.webClient = WebClient.builder()
-                    .clientConnector(new ReactorClientHttpConnector(nettyClient))
+                    .clientConnector(new ReactorClientHttpConnector(httpClient))
                     .build();
             int threadCount = Math.max(Runtime.getRuntime().availableProcessors() * 10, 100);
             this.responseCallbackScheduler = Schedulers.newBoundedElastic(

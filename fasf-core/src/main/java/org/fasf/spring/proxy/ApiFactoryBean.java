@@ -22,6 +22,7 @@ public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<
 
     @Override
     public T getObject() throws Exception {
+        //noinspection unchecked
         return (T) Proxy.newProxyInstance(apiInterface.getClassLoader(), new Class[]{apiInterface}, new ApiInvocationHandler(apiInterface, super.getApiContext(), httpClient));
     }
 
