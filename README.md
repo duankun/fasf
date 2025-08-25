@@ -71,9 +71,8 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 ## 📖 使用示例
 
 项目提供了一个完整的高德地图API调用示例（fasf-client模块）：
-1. 启动FasfClientApplication
-2. 测试高德地图行政区域查询接口
-3. 使用您的高德地图API密钥替换配置
+1. 使用您的高德地图API密钥替换配置（不替换也行，我们的目的是测试我们配置的 XXXApi 实例，返回业务错误也无妨）
+2. 启动FasfClientApplication
 
 ## 快速开始
 通过以上介绍，您已经对FASF项目有了初步了解，并成功运行了高德地图调用示例。接下来，我们将一步步指导您完成自定义接口的接入：
@@ -97,7 +96,7 @@ FASF（Fast API Service Framework）是一个基于Spring Boot 3的轻量级、�
 > 
 >   Mono\<VO\> result = xxxApi.yourMethod(params);
 
-此时，XXXApi 已经以Bean的形式存在于Spring容器中，您可以像 org.fasf.client.service.impl.AMapServiceImpl 一样轻松使用它
+此时，XXXApi 已经以Bean的形式存在于Spring容器中，您可以像 org.fasf.client.FasfClientApplication 一样轻松使用它
 >💡 关于 starter 的提供者，我们期望的情形是 api 的提供者，这样便于 api 接入方快速接入
    
 ## 📋 兼容性
