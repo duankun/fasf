@@ -1,5 +1,6 @@
 package org.fasf.spring.proxy;
 
+import org.fasf.annotation.PathParam;
 import org.fasf.annotation.QueryParam;
 import org.fasf.annotation.Request;
 import org.fasf.annotation.Retryable;
@@ -59,7 +60,7 @@ public class MethodHandler {
         MDCUtils.setupMDC();
         try {
             this.applyRequestInterceptors(getRequest);
-            getRequest.setUrl(this.buildUrlWithQueryParameters(apiContext.getEndpoint() + request.path(), getRequest.getQueryParameters()));
+            getRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args), getRequest.getQueryParameters()));
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute get method:{}", method);
             }
@@ -67,6 +68,22 @@ public class MethodHandler {
         } finally {
             MDCUtils.cleanupMDC();
         }
+    }
+
+    private String resolvePathParameters(String url, Object[] args) {
+        if (args == null || args.length == 0) {
+            return url;
+        }
+        for (int i = 0; i < args.length; i++) {
+            MethodParameter methodParameter = new MethodParameter(method, i);
+            if (methodParameter.hasParameterAnnotation(PathParam.class)) {
+                PathParam parameterAnnotation = methodParameter.getParameterAnnotation(PathParam.class);
+                if (parameterAnnotation != null) {
+                    url = url.replace("{" + parameterAnnotation.value() + "}", args[i].toString());
+                }
+            }
+        }
+        return url;
     }
 
     private Map<String, String> resolveQueryParameters(Object[] args) {
@@ -97,10 +114,10 @@ public class MethodHandler {
 
     public <T> T post(Object[] args, Class<T> returnType) {
         if (args != null && args.length > 1) {
-            logger.warn("POST request only uses the first argument as request body, other arguments are ignored");
+            logger.info("POST request only uses the first argument as request body, other arguments are ignored unless annotated with @PathParam");
         }
         PostRequest postRequest = (PostRequest) new HttpRequest.HttpRequestBuilder()
-                .url(apiContext.getEndpoint() + request.path())
+                .url(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args))
                 .method(HttpMethod.POST)
                 .header("Content-Type", request.contentType())
                 .body(args == null ? null : args[0])
@@ -119,10 +136,10 @@ public class MethodHandler {
 
     public <T> T put(Object[] args, Class<T> returnType) {
         if (args != null && args.length > 1) {
-            logger.warn("PUT request only uses the first argument as request body, other arguments are ignored");
+            logger.info("PUT request only uses the first argument as request body, other arguments are ignored unless annotated with @PathParam");
         }
         PutRequest putRequest = (PutRequest) new HttpRequest.HttpRequestBuilder()
-                .url(apiContext.getEndpoint() + request.path())
+                .url(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args))
                 .method(HttpMethod.PUT)
                 .header("Content-Type", request.contentType())
                 .body(args == null ? null : args[0])
@@ -146,7 +163,7 @@ public class MethodHandler {
                 .queryParameters(queryParameters)
                 .build();
         this.applyRequestInterceptors(deleteRequest);
-        deleteRequest.setUrl(this.buildUrlWithQueryParameters(apiContext.getEndpoint() + request.path(), deleteRequest.getQueryParameters()));
+        deleteRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args), deleteRequest.getQueryParameters()));
         MDCUtils.setupMDC();
         try {
             if (logger.isDebugEnabled()) {
@@ -257,7 +274,7 @@ public class MethodHandler {
                 });
         return mono.map(httpResponse -> {
             MDCUtils.setContextMap(mdcContext);
-            try{
+            try {
                 return this.applyResponseInterceptor(httpResponse);
             } finally {
                 MDCUtils.cleanupMDC();
