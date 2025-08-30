@@ -31,7 +31,7 @@ public class FasfClientApplication {
             String district = aMapApi.district("your amapapi key", "四川", "1");
             System.out.println(district);
             Mono<String> districtAsync = aMapApi.districtAsync("your amapapi key", "四川", "1");
-            System.out.println(districtAsync.block());
+            System.out.println("block" + districtAsync.block());
 
 //            Mono<OrderInfoVO> mono = orderInfoApi.getOrderInfo("12345");
 //            System.out.println(JSON.toJson(mono.block()));

@@ -85,16 +85,22 @@ public interface HttpClient {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
                     }).exchangeToMono(clientResponse -> {
-                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
-                        if (httpStatus.isError()) {
-                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
+                        MDCUtils.setContextMap(contextMap);
+                        try {
+                            logger.debug("HTTP Response: headers={}", clientResponse.headers().asHttpHeaders());
+                            HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
+                            if (httpStatus.isError()) {
+                                throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
+                            }
+                            return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
+                        } finally {
+                            MDCUtils.cleanupMDC();
                         }
-                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
                     })
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
+                        MDCUtils.setContextMap(contextMap);
                         try {
-                            MDCUtils.setContextMap(contextMap);
                             return this.handleException(throwable);
                         } finally {
                             MDCUtils.cleanupMDC();
