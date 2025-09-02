@@ -233,9 +233,12 @@ public class MethodHandler {
                         .filter(throwable -> {
                             MDCUtils.setContextMap(mdcContext);
                             try {
-                                logger.debug("Retrying request due to: {}", throwable.getMessage());
                                 if (throwable instanceof HttpException httpException) {
-                                    return httpException.retryable();
+                                    boolean canRetry = httpException.retryable();
+                                    if (canRetry) {
+                                        logger.debug("Retrying request due to: {}", throwable.getMessage());
+                                    }
+                                    return canRetry;
                                 }
                                 return false;
                             } finally {
@@ -245,9 +248,7 @@ public class MethodHandler {
                         .doBeforeRetry(retrySignal -> {
                             MDCUtils.setContextMap(mdcContext);
                             try {
-                                logger.debug("Retrying request, attempt {}/{}",
-                                        retrySignal.totalRetries() + 1,
-                                        retryable.maxAttempts());
+                                logger.debug("Retrying request, attempt {}/{}", retrySignal.totalRetries() + 1, retryable.maxAttempts());
                             } finally {
                                 MDCUtils.cleanupMDC();
                             }

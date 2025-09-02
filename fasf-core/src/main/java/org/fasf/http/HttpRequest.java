@@ -3,10 +3,11 @@ package org.fasf.http;
 
 import org.fasf.util.JSON;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HttpRequest {
+public class HttpRequest implements Serializable {
     private String url;
     private Map<String, String> headers = new HashMap<>();
 

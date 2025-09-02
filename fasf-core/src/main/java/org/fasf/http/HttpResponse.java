@@ -5,10 +5,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-public class HttpResponse {
+public class HttpResponse implements Serializable {
     private HttpStatusCode status;
     private HttpHeaders headers;
     private byte[] body;

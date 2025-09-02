@@ -2,19 +2,18 @@ package org.fasf.http;
 
 
 import org.fasf.util.JSON;
-import org.springframework.util.CollectionUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class GetRequest extends HttpRequest {
     private final Map<String, String> originQueryParameters = new HashMap<>();
-    private final Map<String, String> queryParameters;
+    private final Map<String, String> queryParameters = new HashMap<>();
 
     public GetRequest(String url, Map<String, String> queryParameters) {
         super(url);
         this.originQueryParameters.putAll(queryParameters);
-        this.queryParameters = CollectionUtils.isEmpty(queryParameters) ? new HashMap<>() : queryParameters;
+        this.queryParameters.putAll(queryParameters);
     }
 
 
