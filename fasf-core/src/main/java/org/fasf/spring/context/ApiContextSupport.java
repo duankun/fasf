@@ -4,27 +4,25 @@ import org.fasf.annotation.Api;
 import org.fasf.annotation.Interceptors;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.interceptor.ResponseInterceptor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class ApiContextSupport {
     private ApiContext apiContext;
-    @Autowired(required = false)
-    private List<RequestInterceptor> requestInterceptors;
-    @Autowired(required = false)
-    private List<ResponseInterceptor> responseInterceptors;
 
     public ApiContext getApiContext() {
         return apiContext;
     }
 
-    public void createApiContext(Class<?> apiInterface) {
+    public void createApiContext(Class<?> apiInterface, List<RequestInterceptor> requestInterceptors, List<ResponseInterceptor> responseInterceptors) {
         Assert.notNull(apiInterface, "Api interface cannot be null");
         apiContext = new ApiContext();
         apiContext.setApiInterface(apiInterface);

@@ -1,12 +1,15 @@
 package org.fasf.spring.proxy;
 
 import org.fasf.http.HttpClient;
+import org.fasf.interceptor.RequestInterceptor;
+import org.fasf.interceptor.ResponseInterceptor;
 import org.fasf.spring.context.ApiContextSupport;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Proxy;
+import java.util.List;
 
 public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<T>, InitializingBean {
     private final Class<T> apiInterface;
@@ -15,6 +18,10 @@ public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<
      */
     @Autowired
     private HttpClient httpClient;
+    @Autowired(required = false)
+    private List<RequestInterceptor> requestInterceptors;
+    @Autowired(required = false)
+    private List<ResponseInterceptor> responseInterceptors;
 
     public ApiFactoryBean(Class<T> apiInterface) {
         this.apiInterface = apiInterface;
@@ -33,6 +40,6 @@ public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        super.createApiContext(apiInterface);
+        super.createApiContext(apiInterface, requestInterceptors, responseInterceptors);
     }
 }

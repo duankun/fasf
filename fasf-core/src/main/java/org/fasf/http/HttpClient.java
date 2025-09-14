@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
@@ -50,18 +51,7 @@ public interface HttpClient {
                         if (request.getHeaders() != null) {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
-                    }).exchangeToMono(clientResponse -> {
-                        MDCUtils.setContextMap(contextMap);
-                        try {
-                            HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
-                            if (httpStatus.isError()) {
-                                throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
-                            }
-                            return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
-                        } finally {
-                            MDCUtils.cleanupMDC();
-                        }
-                    })
+                    }).exchangeToMono(this::handleResponse)
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         MDCUtils.setContextMap(contextMap);
@@ -87,13 +77,7 @@ public interface HttpClient {
                         }
                     })
                     .bodyValue(request.getBody())
-                    .exchangeToMono(clientResponse -> {
-                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
-                        if (httpStatus.isError()) {
-                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
-                        }
-                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
-                    })
+                    .exchangeToMono(this::handleResponse)
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
@@ -119,13 +103,7 @@ public interface HttpClient {
                         }
                     })
                     .bodyValue(request.getBody())
-                    .exchangeToMono(clientResponse -> {
-                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
-                        if (httpStatus.isError()) {
-                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
-                        }
-                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
-                    })
+                    .exchangeToMono(this::handleResponse)
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
@@ -150,13 +128,7 @@ public interface HttpClient {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
                     })
-                    .exchangeToMono(clientResponse -> {
-                        HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
-                        if (httpStatus.isError()) {
-                            throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
-                        }
-                        return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
-                    })
+                    .exchangeToMono(this::handleResponse)
                     .publishOn(responseCallbackScheduler)
                     .onErrorMap(throwable -> {
                         try {
@@ -166,6 +138,14 @@ public interface HttpClient {
                             MDCUtils.cleanupMDC();
                         }
                     });
+        }
+
+        private Mono<HttpResponse> handleResponse(ClientResponse clientResponse) {
+            HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
+            if (httpStatus.isError()) {
+                throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
+            }
+            return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
         }
 
         private Throwable handleException(Throwable throwable) {
