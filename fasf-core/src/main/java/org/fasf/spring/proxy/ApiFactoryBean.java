@@ -11,9 +11,9 @@ import java.lang.reflect.Proxy;
 public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<T>, InitializingBean {
     private final Class<T> apiInterface;
     /**
-     * if there is no {@link HttpClient} configured, a default one {@link HttpClient.DefaultHttpClient} will be used
+     * if there is no customer {@link HttpClient} configured, a default one {@link HttpClient.DefaultHttpClient} will be used
      */
-    @Autowired(required = false)
+    @Autowired
     private HttpClient httpClient;
 
     public ApiFactoryBean(Class<T> apiInterface) {
@@ -33,6 +33,6 @@ public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        super.initApiContext(apiInterface);
+        super.createApiContext(apiInterface);
     }
 }

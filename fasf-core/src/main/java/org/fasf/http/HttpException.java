@@ -31,7 +31,7 @@ public class HttpException extends RuntimeException {
         this.code = code;
     }
 
-    // this exception is retryable or not
+    //this exception is retryable exception or not
     public boolean retryable() {
         return switch (this.code) {
             case 408, 429, 500, 502, 503, 504 -> true;

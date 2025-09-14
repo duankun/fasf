@@ -46,7 +46,7 @@ public class ClassPathApiScanner extends ClassPathBeanDefinitionScanner {
             if (registry.containsBeanDefinition(beanDefinitionHolder.getBeanName())) {
                 registry.removeBeanDefinition(beanDefinitionHolder.getBeanName());
             }
-            Class<?> beanClass = null;
+            Class<?> beanClass;
             try {
                 beanClass = Class.forName(beanDefinitionHolder.getBeanDefinition().getBeanClassName());
             } catch (ClassNotFoundException e) {

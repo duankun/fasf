@@ -3,7 +3,7 @@ package org.fasf.spring.proxy;
 import org.fasf.annotation.PathParam;
 import org.fasf.annotation.QueryParam;
 import org.fasf.annotation.Request;
-import org.fasf.annotation.Retryable;
+import org.fasf.annotation.Retry;
 import org.fasf.http.*;
 import org.fasf.interceptor.RequestInterceptor;
 import org.fasf.interceptor.ResponseInterceptor;
@@ -17,7 +17,6 @@ import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -37,7 +36,7 @@ public class MethodHandler {
         this.method = method;
         this.request = method.getAnnotation(Request.class);
         this.apiContext = apiContext;
-        this.httpClient = httpClient == null ? new HttpClient.DefaultHttpClient() : httpClient;
+        this.httpClient = httpClient;
     }
 
     public Object invoke(Object[] args) {
@@ -52,10 +51,9 @@ public class MethodHandler {
     }
 
     public <T> T get(Object[] args, Class<T> returnType) {
-        Map<String, String> queryParameters = this.resolveQueryParameters(args);
         GetRequest getRequest = (GetRequest) new HttpRequest.HttpRequestBuilder()
                 .method(HttpMethod.GET)
-                .queryParameters(queryParameters)
+                .queryParameters(this.resolveQueryParameters(args))
                 .build();
         MDCUtils.setupMDC();
         try {
@@ -104,7 +102,7 @@ public class MethodHandler {
     }
 
     private String buildUrlWithQueryParameters(String baseUrl, Map<String, String> queryParameters) {
-        if (queryParameters == null || queryParameters.isEmpty()) {
+        if (CollectionUtils.isEmpty(queryParameters)) {
             return baseUrl;
         }
         return baseUrl + "?" + queryParameters.entrySet().stream()
@@ -122,9 +120,9 @@ public class MethodHandler {
                 .header("Content-Type", request.contentType())
                 .body(args == null ? null : args[0])
                 .build();
-        this.applyRequestInterceptors(postRequest);
         MDCUtils.setupMDC();
         try {
+            this.applyRequestInterceptors(postRequest);
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute post method:{}", method);
             }
@@ -144,9 +142,9 @@ public class MethodHandler {
                 .header("Content-Type", request.contentType())
                 .body(args == null ? null : args[0])
                 .build();
-        this.applyRequestInterceptors(putRequest);
         MDCUtils.setupMDC();
         try {
+            this.applyRequestInterceptors(putRequest);
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute put method:{}", method);
             }
@@ -157,15 +155,14 @@ public class MethodHandler {
     }
 
     public <T> T delete(Object[] args, Class<T> returnType) {
-        Map<String, String> queryParameters = this.resolveQueryParameters(args);
         DeleteRequest deleteRequest = (DeleteRequest) new HttpRequest.HttpRequestBuilder()
                 .method(HttpMethod.DELETE)
-                .queryParameters(queryParameters)
+                .queryParameters(this.resolveQueryParameters(args))
                 .build();
-        this.applyRequestInterceptors(deleteRequest);
-        deleteRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args), deleteRequest.getQueryParameters()));
         MDCUtils.setupMDC();
         try {
+            this.applyRequestInterceptors(deleteRequest);
+            deleteRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args), deleteRequest.getQueryParameters()));
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute delete method:{}", method);
             }
@@ -180,7 +177,7 @@ public class MethodHandler {
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply request interceptors: {}", requestInterceptors);
+                logger.debug("Apply request interceptors: {}", requestInterceptors.stream().map(i -> i.getClass().getSimpleName()).collect(Collectors.toList()));
             }
         }
     }
@@ -188,9 +185,9 @@ public class MethodHandler {
     private HttpResponse applyResponseInterceptor(HttpResponse httpResponse) {
         ResponseInterceptor responseInterceptor = apiContext.getResponseInterceptor(method);
         if (responseInterceptor != null) {
-            String responseInterceptorName = responseInterceptor.getClass().getName();
+            String responseInterceptorName = responseInterceptor.getClass().getSimpleName();
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply response interceptor:{} ,before={}", responseInterceptorName, httpResponse);
+                logger.debug("Apply response interceptor:{},before={}", responseInterceptorName, httpResponse);
             }
             responseInterceptor.intercept(httpResponse);
             if (logger.isDebugEnabled()) {
@@ -201,8 +198,8 @@ public class MethodHandler {
     }
 
     private <T> T getReturn(HttpRequest request, Class<T> returnType) {
-        Retryable retryable = method.getAnnotation(Retryable.class);
-        Mono<HttpResponse> mono = this.retryWrapper(request, retryable);
+        Retry retry = method.getAnnotation(Retry.class);
+        Mono<HttpResponse> mono = this.retryWrapper(request, retry);
         if (Mono.class.isAssignableFrom(returnType)) {
             Class<?> genericReturnType = ClassUtils.getGenericReturnType(method);
             if (HttpResponse.class.isAssignableFrom(genericReturnType)) {
@@ -214,13 +211,14 @@ public class MethodHandler {
             }
         } else {
             HttpResponse httpResponse = mono.block();
-            return httpResponse == null ? null : JSON.fromJson(httpResponse.getBodyAsString(), returnType);
+            //noinspection unchecked
+            return httpResponse == null ? null : HttpResponse.class.isAssignableFrom(returnType) ? (T) httpResponse : JSON.fromJson(httpResponse.getBodyAsString(), returnType);
         }
     }
 
-    private Mono<HttpResponse> retryWrapper(HttpRequest request, Retryable retryable) {
+    private Mono<HttpResponse> retryWrapper(HttpRequest request, Retry retry) {
         Map<String, String> mdcContext = MDC.getCopyOfContextMap();
-        Mono<HttpResponse> mono = retryable == null ? this.getMono(request) : Mono.defer(() -> {
+        Mono<HttpResponse> mono = retry == null ? this.getMono(request) : Mono.defer(() -> {
                     MDCUtils.setContextMap(mdcContext);
                     try {
                         return this.getMono(request);
@@ -228,17 +226,17 @@ public class MethodHandler {
                         MDCUtils.cleanupMDC();
                     }
                 })
-                .retryWhen(Retry.backoff(retryable.maxAttempts(), Duration.ofSeconds(retryable.delay()))
-                        .maxBackoff(Duration.ofSeconds(retryable.maxBackoff()))
+                .retryWhen(reactor.util.retry.Retry.backoff(retry.maxAttempts(), Duration.ofSeconds(retry.delay()))
+                        .maxBackoff(Duration.ofSeconds(retry.maxBackoff()))
                         .filter(throwable -> {
                             MDCUtils.setContextMap(mdcContext);
                             try {
                                 if (throwable instanceof HttpException httpException) {
-                                    boolean canRetry = httpException.retryable();
-                                    if (canRetry) {
+                                    boolean retryable = httpException.retryable();
+                                    if (retryable) {
                                         logger.debug("Retrying request due to: {}", throwable.getMessage());
                                     }
-                                    return canRetry;
+                                    return retryable;
                                 }
                                 return false;
                             } finally {
@@ -248,7 +246,7 @@ public class MethodHandler {
                         .doBeforeRetry(retrySignal -> {
                             MDCUtils.setContextMap(mdcContext);
                             try {
-                                logger.debug("Retrying request, attempt {}/{}", retrySignal.totalRetries() + 1, retryable.maxAttempts());
+                                logger.debug("Retrying request, attempt {}/{}", retrySignal.totalRetries() + 1, retry.maxAttempts());
                             } finally {
                                 MDCUtils.cleanupMDC();
                             }
@@ -258,17 +256,17 @@ public class MethodHandler {
                             if (failure instanceof HttpException httpException) {
                                 return httpException;
                             }
-                            return new HttpException(500, "Request failed after " + retryable.maxAttempts() + " attempts", failure);
+                            return new HttpException(500, "Request failed after " + retry.maxAttempts() + " attempts", failure);
                         })
                 )
                 .onErrorResume(throwable -> {
                     MDCUtils.setContextMap(mdcContext);
                     try {
-                        logger.debug("Request failed after retry {} times", retryable.maxAttempts());
+                        logger.debug("Request failed after retry {} times", retry.maxAttempts());
                         if (throwable instanceof HttpException) {
                             return Mono.error(throwable);
                         }
-                        return Mono.error(new HttpException(500, "Request failed after retry " + retryable.maxAttempts() + " times", throwable));
+                        return Mono.error(new HttpException(500, "Request failed after retry " + retry.maxAttempts() + " times", throwable));
                     } finally {
                         MDCUtils.cleanupMDC();
                     }

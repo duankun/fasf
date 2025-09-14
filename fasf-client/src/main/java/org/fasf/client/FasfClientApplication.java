@@ -34,6 +34,7 @@ public class FasfClientApplication {
             System.out.println("block" + districtAsync.block());
 
 //            Mono<OrderInfoVO> mono = orderInfoApi.getOrderInfo("12345");
+//            mono.flux().subscribe(data -> System.out.println(data),err -> System.out.println(err),() -> System.out.println("complete success"));
 //            System.out.println(JSON.toJson(mono.block()));
 //
 //            OrderInfoVO orderInfo = orderInfoApi.getOrderInfo(new OrderInfoRO("12345"));

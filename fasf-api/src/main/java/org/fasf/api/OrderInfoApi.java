@@ -17,10 +17,11 @@ public interface OrderInfoApi {
 
     @Request(path = "/getOrderInfo")
     @Interceptors(requestInterceptors = {AESEncryptRequestInterceptor.class}, responseInterceptor = AESResponseInterceptor.class)
-    @Retryable
+    @Retry
     OrderInfoVO getOrderInfo(OrderInfoRO orderInfoRO);
 
     @Request(path = "/getOrderInfo", method = HttpMethod.GET)
-    @Retryable
+    @Interceptors(requestInterceptors = {AESEncryptRequestInterceptor.class}, responseInterceptor = AESResponseInterceptor.class)
+    @Retry
     Mono<OrderInfoVO> getOrderInfo(@QueryParam("orderId") String orderId);
 }

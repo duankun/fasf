@@ -1,6 +1,5 @@
 package org.fasf.http;
 
-import io.netty.channel.ChannelOption;
 import org.fasf.util.MDCUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,11 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
-import reactor.netty.resources.ConnectionProvider;
-import reactor.netty.resources.LoopResources;
 
-import java.time.Duration;
 import java.util.Map;
 
 public interface HttpClient {
@@ -43,35 +38,6 @@ public interface HttpClient {
                     .build(), responseCallbackScheduler);
         }
 
-        public DefaultHttpClient() {
-            ConnectionProvider connectionProvider = ConnectionProvider.builder("high-concurrency-provider")
-                    .maxConnections(1000)
-                    .pendingAcquireTimeout(Duration.ofSeconds(10))
-                    .pendingAcquireMaxCount(5000)
-                    .maxIdleTime(Duration.ofSeconds(30))
-                    .maxLifeTime(Duration.ofMinutes(5))
-                    .evictInBackground(Duration.ofSeconds(10))
-                    .build();
-
-            LoopResources loopResources = LoopResources.create("fasf-reactor-io", Runtime.getRuntime().availableProcessors(), true);
-
-            reactor.netty.http.client.HttpClient httpClient = reactor.netty.http.client.HttpClient.create(connectionProvider)
-                    .runOn(loopResources)
-                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
-                    .responseTimeout(Duration.ofSeconds(15))
-                    .keepAlive(true);
-
-            this.webClient = WebClient.builder()
-                    .clientConnector(new ReactorClientHttpConnector(httpClient))
-                    .build();
-            int threadCount = Math.max(Runtime.getRuntime().availableProcessors() * 10, 100);
-            this.responseCallbackScheduler = Schedulers.newBoundedElastic(
-                    threadCount,
-                    10000,
-                    "fasf-response-callback-scheduler"
-            );
-        }
-
         @Override
         public Mono<HttpResponse> getAsync(GetRequest request) {
             Map<String, String> contextMap = MDC.getCopyOfContextMap();
@@ -87,7 +53,6 @@ public interface HttpClient {
                     }).exchangeToMono(clientResponse -> {
                         MDCUtils.setContextMap(contextMap);
                         try {
-                            logger.debug("HTTP Response: headers={}", clientResponse.headers().asHttpHeaders());
                             HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
                             if (httpStatus.isError()) {
                                 throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
@@ -153,6 +118,7 @@ public interface HttpClient {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
                     })
+                    .bodyValue(request.getBody())
                     .exchangeToMono(clientResponse -> {
                         HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
                         if (httpStatus.isError()) {

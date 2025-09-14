@@ -1,29 +1,27 @@
 package org.fasf.interceptor;
 
 
+import jakarta.annotation.PostConstruct;
 import org.fasf.http.HttpResponse;
 import org.fasf.util.AesUtils;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.Assert;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 
-public class AESResponseInterceptor implements ResponseInterceptor, InitializingBean {
+public class AESResponseInterceptor implements ResponseInterceptor {
     @Value("${fasf.api.encrypt.aesKey}")
     private String aesKey;
     private SecretKey aesSecretKey;
-    @Override
-    public void intercept(HttpResponse httpResponse) {
-        try {
-            httpResponse.setBody(AesUtils.decrypt(httpResponse.getBodyAsString(), aesSecretKey).getBytes(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void intercept(HttpResponse httpResponse) {
+        httpResponse.setBody(AesUtils.decrypt(httpResponse.getBodyAsString(), aesSecretKey).getBytes(httpResponse.getCharset()));
+    }
+
+    @PostConstruct
+    public void setUpSecretKey() {
+        Assert.notNull(aesKey, "aesKey can not be null");
         this.aesSecretKey = AesUtils.generateKey(aesKey);
     }
 }

@@ -3,10 +3,6 @@ package org.fasf.model.vo;
 import java.io.Serializable;
 import java.util.List;
 
-/**
- * @author duankun
- * @date 2025/8/18
- */
 public class DistrictVO implements Serializable {
     private String status;
     private String info;

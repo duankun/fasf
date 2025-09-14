@@ -44,16 +44,22 @@ public class HttpResponse implements Serializable {
         this.body = body;
     }
 
+    public String getBodyAsString(Charset charset){
+        return new String(body, charset);
+    }
     public String getBodyAsString() {
-        Charset charset = StandardCharsets.UTF_8;
+        return getBodyAsString(getCharset());
+    }
+
+    public Charset getCharset(){
         String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
         if (contentType != null) {
             MediaType mediaType = MediaType.parseMediaType(contentType);
             if (mediaType.getCharset() != null) {
-                charset = mediaType.getCharset();
+                return mediaType.getCharset();
             }
         }
-        return new String(body, charset);
+        return StandardCharsets.UTF_8;
     }
 
     @Override

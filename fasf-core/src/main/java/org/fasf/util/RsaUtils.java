@@ -18,16 +18,26 @@ public class RsaUtils {
         return keyPairGenerator.generateKeyPair();
     }
 
-    public static PublicKey getPublicKey(byte[] publicKeyBytes) throws Exception {
+    public static PublicKey getPublicKey(byte[] publicKeyBytes) {
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
-        return keyFactory.generatePublic(keySpec);
+        KeyFactory keyFactory;
+        try {
+            keyFactory = KeyFactory.getInstance(ALGORITHM);
+            return keyFactory.generatePublic(keySpec);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static PrivateKey getPrivateKey(byte[] privateKeyBytes) throws Exception {
+    public static PrivateKey getPrivateKey(byte[] privateKeyBytes) {
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
-        return keyFactory.generatePrivate(keySpec);
+        KeyFactory keyFactory;
+        try {
+            keyFactory = KeyFactory.getInstance(ALGORITHM);
+            return keyFactory.generatePrivate(keySpec);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String publicKeyToString(PublicKey publicKey) {
@@ -38,48 +48,72 @@ public class RsaUtils {
         return Base64.getEncoder().encodeToString(privateKey.getEncoded());
     }
 
-    public static PublicKey stringToPublicKey(String publicKeyString) throws Exception {
+    public static PublicKey stringToPublicKey(String publicKeyString) {
         byte[] keyBytes = Base64.getDecoder().decode(publicKeyString);
         return getPublicKey(keyBytes);
     }
 
-    public static PrivateKey stringToPrivateKey(String privateKeyString) throws Exception {
+    public static PrivateKey stringToPrivateKey(String privateKeyString) {
         byte[] keyBytes = Base64.getDecoder().decode(privateKeyString);
         return getPrivateKey(keyBytes);
     }
 
-    public static String encrypt(String data, PublicKey publicKey) throws Exception {
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-
-        byte[] dataBytes = data.getBytes(DEFAULT_CHARSET);
-        byte[] encryptedData = cipher.doFinal(dataBytes);
+    public static String encrypt(String data, PublicKey publicKey) {
+        Cipher cipher;
+        byte[] dataBytes;
+        byte[] encryptedData;
+        try {
+            cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+            dataBytes = data.getBytes(DEFAULT_CHARSET);
+            encryptedData = cipher.doFinal(dataBytes);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return Base64.getEncoder().encodeToString(encryptedData);
     }
 
-    public static String decrypt(String encryptedData, PrivateKey privateKey) throws Exception {
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
-
-        byte[] decodedData = Base64.getDecoder().decode(encryptedData);
-        byte[] decryptedData = cipher.doFinal(decodedData);
-        return new String(decryptedData, DEFAULT_CHARSET);
+    public static String decrypt(String encryptedData, PrivateKey privateKey) {
+        Cipher cipher;
+        byte[] decodedData;
+        byte[] decryptedData;
+        try {
+            cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, privateKey);
+            decodedData = Base64.getDecoder().decode(encryptedData);
+            decryptedData = cipher.doFinal(decodedData);
+            return new String(decryptedData, DEFAULT_CHARSET);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static String sign(String data, PrivateKey privateKey) throws Exception {
-        Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initSign(privateKey);
-        signature.update(data.getBytes(DEFAULT_CHARSET));
-        byte[] signedData = signature.sign();
+    public static String sign(String data, PrivateKey privateKey) {
+        Signature signature;
+        byte[] signedData;
+        try {
+            signature = Signature.getInstance("SHA256withRSA");
+            signature.initSign(privateKey);
+            signature.update(data.getBytes(DEFAULT_CHARSET));
+            signedData = signature.sign();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return Base64.getEncoder().encodeToString(signedData);
     }
 
-    public static boolean verify(String data, String sign, PublicKey publicKey) throws Exception {
-        Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initVerify(publicKey);
-        signature.update(data.getBytes(DEFAULT_CHARSET));
-        byte[] signBytes = Base64.getDecoder().decode(sign);
-        return signature.verify(signBytes);
+    public static boolean verify(String data, String sign, PublicKey publicKey) {
+        Signature signature;
+        byte[] signBytes;
+        try {
+            signature = Signature.getInstance("SHA256withRSA");
+            signature.initVerify(publicKey);
+            signature.update(data.getBytes(DEFAULT_CHARSET));
+            signBytes = Base64.getDecoder().decode(sign);
+            return signature.verify(signBytes);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void main(String[] args) {

@@ -11,17 +11,17 @@ public class DesUtils {
     private static final String ALGORITHM = "DES";
     private static final String DEFAULT_CHARSET = "UTF-8";
 
-    public static SecretKey generateKey() throws Exception {
-        KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
-        keyGenerator.init(56);
-        return keyGenerator.generateKey();
-    }
-
-    public static SecretKey generateKey(String key) throws Exception {
-        SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
-        secureRandom.setSeed(key.getBytes(DEFAULT_CHARSET));
-        KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
-        keyGenerator.init(56, secureRandom);
+    public static SecretKey generateKey(String key) {
+        SecureRandom secureRandom;
+        KeyGenerator keyGenerator;
+        try {
+            secureRandom = SecureRandom.getInstance("SHA1PRNG");
+            secureRandom.setSeed(key.getBytes(DEFAULT_CHARSET));
+            keyGenerator = KeyGenerator.getInstance(ALGORITHM);
+            keyGenerator.init(56, secureRandom);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return keyGenerator.generateKey();
     }
 
@@ -29,19 +29,32 @@ public class DesUtils {
         return new SecretKeySpec(keyBytes, ALGORITHM);
     }
 
-    public static String encrypt(String data, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        byte[] encryptedData = cipher.doFinal(data.getBytes(DEFAULT_CHARSET));
+    public static String encrypt(String data, SecretKey key) {
+        Cipher cipher;
+        byte[] encryptedData;
+        try {
+            cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+            encryptedData = cipher.doFinal(data.getBytes(DEFAULT_CHARSET));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return Base64.getEncoder().encodeToString(encryptedData);
     }
 
-    public static String decrypt(String encryptedData, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, key);
-        byte[] decodedData = Base64.getDecoder().decode(encryptedData);
-        byte[] decryptedData = cipher.doFinal(decodedData);
-        return new String(decryptedData, DEFAULT_CHARSET);
+    public static String decrypt(String encryptedData, SecretKey key) {
+        Cipher cipher;
+        byte[] decodedData;
+        byte[] decryptedData;
+        try {
+            cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, key);
+            decodedData = Base64.getDecoder().decode(encryptedData);
+            decryptedData = cipher.doFinal(decodedData);
+            return new String(decryptedData, DEFAULT_CHARSET);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String keyToString(SecretKey key) {

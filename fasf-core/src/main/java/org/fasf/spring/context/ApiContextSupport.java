@@ -14,18 +14,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ApiContextSupport {
-    private final ApiContext apiContext = new ApiContext();
+    private ApiContext apiContext;
     @Autowired(required = false)
-    private final List<RequestInterceptor> requestInterceptors = Collections.emptyList();
+    private List<RequestInterceptor> requestInterceptors;
     @Autowired(required = false)
-    private final List<ResponseInterceptor> responseInterceptors = Collections.emptyList();
+    private List<ResponseInterceptor> responseInterceptors;
 
     public ApiContext getApiContext() {
         return apiContext;
     }
 
-    public void initApiContext(Class<?> apiInterface) {
+    public void createApiContext(Class<?> apiInterface) {
         Assert.notNull(apiInterface, "Api interface cannot be null");
+        apiContext = new ApiContext();
         apiContext.setApiInterface(apiInterface);
         Api api = apiInterface.getAnnotation(Api.class);
         apiContext.setEndpoint(api.endpoint());

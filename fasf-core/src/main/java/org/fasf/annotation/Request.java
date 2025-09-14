@@ -10,5 +10,5 @@ import java.lang.annotation.*;
 public @interface Request {
     String path() default "";
     HttpMethod method() default HttpMethod.POST;
-    String contentType() default "application/json;";
+    String contentType() default "application/json;charset=utf-8";
 }

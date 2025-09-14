@@ -17,26 +17,38 @@ public class AesUtils {
         return new SecretKeySpec(adjustedKey, AES);
     }
 
-    public static String encrypt(String data, String originKey) throws Exception {
+    public static String encrypt(String data, String originKey) {
         return encrypt(data, generateKey(originKey));
     }
 
-    public static String encrypt(String data, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(AES_ALGORITHM);
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        byte[] encryptedBytes = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
+    public static String encrypt(String data, SecretKey key) {
+        Cipher cipher;
+        byte[] encryptedBytes;
+        try {
+            cipher = Cipher.getInstance(AES_ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+            encryptedBytes = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
-    public static String decrypt(String encryptedData, String originKey) throws Exception {
+    public static String decrypt(String encryptedData, String originKey) {
         return decrypt(encryptedData, generateKey(originKey));
     }
 
 
-    public static String decrypt(String encryptedData, SecretKey key) throws Exception {
-        Cipher cipher = Cipher.getInstance(AES_ALGORITHM);
-        cipher.init(Cipher.DECRYPT_MODE, key);
-        byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
+    public static String decrypt(String encryptedData, SecretKey key) {
+        Cipher cipher;
+        byte[] decryptedBytes;
+        try {
+            cipher = Cipher.getInstance(AES_ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, key);
+            decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return new String(decryptedBytes, StandardCharsets.UTF_8);
     }
 

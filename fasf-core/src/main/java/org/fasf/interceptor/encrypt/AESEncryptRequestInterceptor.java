@@ -1,52 +1,26 @@
 package org.fasf.interceptor.encrypt;
 
-import org.fasf.http.GetRequest;
+import jakarta.annotation.PostConstruct;
 import org.fasf.http.HttpRequest;
-import org.fasf.http.PostRequest;
 import org.fasf.util.AesUtils;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
 
 import javax.crypto.SecretKey;
-import java.util.Map;
 
-public class AESEncryptRequestInterceptor extends EncryptRequestInterceptor implements InitializingBean {
+public class AESEncryptRequestInterceptor extends EncryptRequestInterceptor {
     @Value("${fasf.api.encrypt.aesKey}")
     private String aesKey;
     private SecretKey aesSecretKey;
 
     @Override
-    public void interceptorInternal(HttpRequest request) {
-        if (request instanceof GetRequest getRequest) {
-            this.getRequestEncrypt(getRequest);
-        } else if (request instanceof PostRequest postRequest) {
-            this.postRequestEncrypt(postRequest);
-        }
+    public EncryptTypeEnum encryptType() {
+        return EncryptTypeEnum.AES;
     }
 
-    private void getRequestEncrypt(GetRequest getRequest) {
-        Map<String, String> queryParameters = getRequest.getQueryParameters();
-        if (!CollectionUtils.isEmpty(queryParameters)) {
-            queryParameters.forEach((key, value) -> {
-                try {
-                    String encryptedValue = AesUtils.encrypt(value, aesSecretKey);
-                    queryParameters.put(key, encryptedValue);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }
-    }
-
-    private void postRequestEncrypt(PostRequest postRequest) {
-        String body = postRequest.getBody();
-        try {
-            postRequest.setBody(AesUtils.encrypt(body, aesSecretKey));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Override
+    public void interceptorInternal(HttpRequest request) throws Exception {
+        super.encryptRequest(request, (v, k) -> AesUtils.encrypt(v, (SecretKey) k), aesSecretKey);
     }
 
     @Override
@@ -54,8 +28,8 @@ public class AESEncryptRequestInterceptor extends EncryptRequestInterceptor impl
         return 1;
     }
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
+    @PostConstruct
+    public void setUpSecretKey() {
         Assert.notNull(aesKey, "aesKey can not be null");
         this.aesSecretKey = AesUtils.generateKey(aesKey);
     }
