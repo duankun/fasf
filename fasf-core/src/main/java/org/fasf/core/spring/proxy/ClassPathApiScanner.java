@@ -53,8 +53,10 @@ public class ClassPathApiScanner extends ClassPathBeanDefinitionScanner {
                 throw new RuntimeException(e);
             }
             Interceptors classInterceptors = beanClass.getAnnotation(Interceptors.class);
-            Collections.addAll(requestInterceptors, classInterceptors.requestInterceptors());
-            Collections.addAll(responseInterceptors, classInterceptors.responseInterceptor());
+            if (classInterceptors != null) {
+                Collections.addAll(requestInterceptors, classInterceptors.requestInterceptors());
+                Collections.addAll(responseInterceptors, classInterceptors.responseInterceptor());
+            }
             Method[] declaredMethods = beanClass.getDeclaredMethods();
             Assert.notEmpty(declaredMethods, "No methods found in api interface " + beanClass.getName());
             Arrays.stream(declaredMethods).forEach(method -> {

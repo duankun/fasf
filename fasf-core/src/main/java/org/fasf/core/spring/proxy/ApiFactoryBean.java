@@ -1,23 +1,23 @@
 package org.fasf.core.spring.proxy;
 
+import jakarta.annotation.Resource;
 import org.fasf.core.http.HttpClient;
 import org.fasf.core.interceptor.RequestInterceptor;
 import org.fasf.core.interceptor.ResponseInterceptor;
 import org.fasf.core.spring.context.ApiContextSupport;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Proxy;
 import java.util.List;
 
 public class ApiFactoryBean<T> extends ApiContextSupport implements FactoryBean<T>, InitializingBean {
     private final Class<T> apiInterface;
-    @Autowired
+    @Resource
     private HttpClient httpClient;
-    @Autowired(required = false)
+    @Resource
     private List<RequestInterceptor> requestInterceptors;
-    @Autowired(required = false)
+    @Resource
     private List<ResponseInterceptor> responseInterceptors;
 
     public ApiFactoryBean(Class<T> apiInterface) {

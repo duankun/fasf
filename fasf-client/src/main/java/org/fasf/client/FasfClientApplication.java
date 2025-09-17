@@ -1,8 +1,8 @@
 package org.fasf.client;
 
+import jakarta.annotation.Resource;
 import org.fasf.api.AMapApi;
 import org.fasf.api.OrderInfoApi;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,9 +16,9 @@ import reactor.core.publisher.Mono;
  */
 @SpringBootApplication
 public class FasfClientApplication {
-    @Autowired
+    @Resource
     private AMapApi aMapApi;
-    @Autowired
+    @Resource
     private OrderInfoApi orderInfoApi;
 
     public static void main(String[] args) {

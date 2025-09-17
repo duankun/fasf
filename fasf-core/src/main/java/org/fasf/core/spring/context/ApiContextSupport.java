@@ -9,10 +9,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ApiContextSupport {
@@ -29,10 +26,10 @@ public class ApiContextSupport {
         Api api = apiInterface.getAnnotation(Api.class);
         apiContext.setEndpoint(api.endpoint());
         Interceptors classInterceptorsAnnotation = apiInterface.getAnnotation(Interceptors.class);
-        Set<Class<? extends RequestInterceptor>> specificClassRequestInterceptors = Set.of(classInterceptorsAnnotation.requestInterceptors());
-        Class<? extends ResponseInterceptor> specificClassResponseInterceptor = classInterceptorsAnnotation.responseInterceptor();
-        Set<RequestInterceptor> classRequestInterceptors = CollectionUtils.isEmpty(requestInterceptors) ? new TreeSet<>() : requestInterceptors.stream().filter(interceptor -> specificClassRequestInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
-        ResponseInterceptor classResponseInterceptor = CollectionUtils.isEmpty(responseInterceptors) ? null : responseInterceptors.stream().filter(interceptor -> specificClassResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
+        Set<Class<? extends RequestInterceptor>> specificClassRequestInterceptors = classInterceptorsAnnotation == null ? null : Set.of(classInterceptorsAnnotation.requestInterceptors());
+        Class<? extends ResponseInterceptor> specificClassResponseInterceptor = classInterceptorsAnnotation == null ? null : classInterceptorsAnnotation.responseInterceptor();
+        Set<RequestInterceptor> classRequestInterceptors = CollectionUtils.isEmpty(requestInterceptors) || CollectionUtils.isEmpty(specificClassRequestInterceptors) ? new TreeSet<>() : requestInterceptors.stream().filter(interceptor -> specificClassRequestInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
+        ResponseInterceptor classResponseInterceptor = CollectionUtils.isEmpty(responseInterceptors) ||  specificClassResponseInterceptor == null ? null : responseInterceptors.stream().filter(interceptor -> specificClassResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
         Method[] declaredMethods = apiInterface.getDeclaredMethods();
         Assert.notEmpty(declaredMethods, "No methods found in api interface " + apiInterface.getName());
         Arrays.stream(declaredMethods).forEach(method -> {
