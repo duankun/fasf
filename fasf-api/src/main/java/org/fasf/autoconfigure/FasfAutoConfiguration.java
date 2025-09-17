@@ -1,8 +1,8 @@
 package org.fasf.autoconfigure;
 
 import io.netty.channel.ChannelOption;
-import org.fasf.http.HttpClient;
-import org.fasf.spring.annotation.ApiScan;
+import org.fasf.core.http.HttpClient;
+import org.fasf.core.spring.annotation.ApiScan;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;

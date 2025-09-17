@@ -1,7 +1,7 @@
 package org.fasf.api;
 
-import org.fasf.annotation.*;
-import org.fasf.http.HttpMethod;
+import org.fasf.core.annotation.*;
+import org.fasf.core.http.HttpMethod;
 import org.fasf.interceptor.AESResponseInterceptor;
 import org.fasf.interceptor.AuthorizationInterceptor;
 import org.fasf.interceptor.TraceIdInterceptor;

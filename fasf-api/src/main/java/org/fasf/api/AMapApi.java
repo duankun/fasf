@@ -1,7 +1,10 @@
 package org.fasf.api;
 
-import org.fasf.annotation.*;
-import org.fasf.http.HttpMethod;
+import org.fasf.core.annotation.Api;
+import org.fasf.core.annotation.Interceptors;
+import org.fasf.core.annotation.QueryParam;
+import org.fasf.core.annotation.Request;
+import org.fasf.core.http.HttpMethod;
 import org.fasf.interceptor.TraceIdInterceptor;
 import reactor.core.publisher.Mono;
 
