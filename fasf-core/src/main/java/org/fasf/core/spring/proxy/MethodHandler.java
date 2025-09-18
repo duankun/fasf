@@ -177,7 +177,7 @@ public class MethodHandler {
         if (!CollectionUtils.isEmpty(requestInterceptors)) {
             requestInterceptors.forEach(interceptor -> interceptor.intercept(request));
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply request interceptors: {}", requestInterceptors.stream().map(i -> i.getClass().getSimpleName()).collect(Collectors.toList()));
+                logger.debug("Apply request interceptors: {}", requestInterceptors.stream().map(RequestInterceptor::getName).collect(Collectors.toList()));
             }
         }
     }
@@ -185,13 +185,13 @@ public class MethodHandler {
     private HttpResponse applyResponseInterceptor(HttpResponse httpResponse) {
         ResponseInterceptor responseInterceptor = apiContext.getResponseInterceptor(method);
         if (responseInterceptor != null) {
-            String responseInterceptorName = responseInterceptor.getClass().getSimpleName();
+            String responseInterceptorName = responseInterceptor.getName();
             if (logger.isDebugEnabled()) {
                 logger.debug("Apply response interceptor:{},before={}", responseInterceptorName, httpResponse);
             }
             responseInterceptor.intercept(httpResponse);
             if (logger.isDebugEnabled()) {
-                logger.debug("Apply response interceptor:{} ,after={}", responseInterceptorName, httpResponse);
+                logger.debug("Apply response interceptor:{},after={}", responseInterceptorName, httpResponse);
             }
         }
         return httpResponse;

@@ -37,7 +37,7 @@ public class FasfAutoConfiguration {
                 .evictInBackground(Duration.ofSeconds(10))
                 .build();
 
-        LoopResources loopResources = LoopResources.create("fasf-reactor-io", Runtime.getRuntime().availableProcessors(), true);
+        LoopResources loopResources = LoopResources.create("fasf-reactor-io", Math.min(4, Runtime.getRuntime().availableProcessors()), true);
 
         reactor.netty.http.client.HttpClient httpClient = reactor.netty.http.client.HttpClient.create(connectionProvider)
                 .runOn(loopResources)
