@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -149,6 +150,9 @@ public interface HttpClient {
         }
 
         private Throwable handleException(Throwable throwable) {
+            if (throwable instanceof WebClientRequestException webClientRequestException) {
+                throw new HttpException(-1, webClientRequestException.getMessage());
+            }
             if (throwable instanceof WebClientResponseException webClientResponseException) {
                 HttpStatus status = HttpStatus.valueOf(webClientResponseException.getStatusCode().value());
                 logger.warn("Request encounter an error:{} {}", status.value(), status.getReasonPhrase());

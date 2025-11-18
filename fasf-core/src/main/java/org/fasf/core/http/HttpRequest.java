@@ -8,13 +8,15 @@ import java.util.Map;
 public class HttpRequest implements Serializable {
     private String url;
     private Map<String, String> headers = new HashMap<>();
+    private Map<String, String> queryParameters = new HashMap<>();
 
     public HttpRequest(String url) {
         this.url = url;
     }
 
-    public HttpRequest(String url, Map<String, String> headers) {
+    public HttpRequest(String url, Map<String, String> headers, Map<String, String> queryParameters) {
         this.url = url;
+        this.queryParameters = queryParameters;
         this.headers.putAll(headers);
     }
 
@@ -36,6 +38,14 @@ public class HttpRequest implements Serializable {
 
     public void addHeader(String key, String value) {
         headers.put(key, value);
+    }
+
+    public Map<String, String> getQueryParameters() {
+        return this.queryParameters;
+    }
+
+    public void addParameter(String key, String value) {
+        queryParameters.put(key, value);
     }
 
     public static class HttpRequestBuilder {
@@ -75,9 +85,9 @@ public class HttpRequest implements Serializable {
 
         public HttpRequest build() {
             return switch (method) {
-                case GET -> new GetRequest(url, queryParameters);
-                case POST -> new PostRequest(url, headers, originBody);
-                case PUT -> new PutRequest(url, headers, originBody);
+                case GET -> new GetRequest(url, headers, queryParameters);
+                case POST -> new PostRequest(url, headers, queryParameters, originBody);
+                case PUT -> new PutRequest(url, headers, queryParameters, originBody);
                 case DELETE -> new DeleteRequest(url, headers, queryParameters);
                 default -> throw new IllegalArgumentException("Invalid HTTP method:" + method);
             };

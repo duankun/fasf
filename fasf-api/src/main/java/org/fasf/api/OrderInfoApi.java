@@ -15,12 +15,12 @@ import reactor.core.publisher.Mono;
 @Interceptors(requestInterceptors = {TraceIdInterceptor.class, AuthorizationInterceptor.class})
 public interface OrderInfoApi {
 
-    @Request(path = "/getOrderInfo")
+    @RequestMapping(path = "/getOrderInfo/{replace}")
     @Interceptors(requestInterceptors = {AESEncryptRequestInterceptor.class}, responseInterceptor = AESResponseInterceptor.class)
     @Retry
-    OrderInfoVO getOrderInfo(OrderInfoRO orderInfoRO);
+    OrderInfoVO getOrderInfo(@RequestBody OrderInfoRO orderInfoRO,@PathParam("replace") String replace,@QueryParam("key")String key);
 
-    @Request(path = "/getOrderInfo", method = HttpMethod.GET)
+    @RequestMapping(path = "/getOrderInfo", method = HttpMethod.GET)
     @Interceptors(requestInterceptors = {AESEncryptRequestInterceptor.class}, responseInterceptor = AESResponseInterceptor.class)
     @Retry
     Mono<OrderInfoVO> getOrderInfo(@QueryParam("orderId") String orderId);

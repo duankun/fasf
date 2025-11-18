@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 
 public class HttpException extends RuntimeException {
     private int code;
+    private long totalRetries;
 
     public HttpException(HttpStatus status) {
         this(status.value(), "Request failed: " + status.getReasonPhrase());
@@ -29,6 +30,14 @@ public class HttpException extends RuntimeException {
 
     public void setCode(int code) {
         this.code = code;
+    }
+
+    public long getTotalRetries() {
+        return totalRetries;
+    }
+
+    public void setTotalRetries(long totalRetries) {
+        this.totalRetries = totalRetries;
     }
 
     //this exception is retryable or not

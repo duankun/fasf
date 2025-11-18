@@ -1,9 +1,6 @@
 package org.fasf.core.spring.proxy;
 
-import org.fasf.core.annotation.PathParam;
-import org.fasf.core.annotation.QueryParam;
-import org.fasf.core.annotation.Request;
-import org.fasf.core.annotation.Retry;
+import org.fasf.core.annotation.*;
 import org.fasf.core.http.*;
 import org.fasf.core.interceptor.RequestInterceptor;
 import org.fasf.core.interceptor.ResponseInterceptor;
@@ -16,6 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
@@ -28,25 +28,25 @@ import java.util.stream.Collectors;
 public class MethodHandler {
     private final Logger logger = LoggerFactory.getLogger(MethodHandler.class);
     private final Method method;
-    private final Request request;
+    private final RequestMapping requestMapping;
     private final ApiContext apiContext;
     private final HttpClient httpClient;
 
     public MethodHandler(Method method, ApiContext apiContext, HttpClient httpClient) {
         this.method = method;
-        this.request = method.getAnnotation(Request.class);
+        this.requestMapping = method.getAnnotation(RequestMapping.class);
         this.apiContext = apiContext;
         this.httpClient = httpClient;
     }
 
     public Object invoke(Object[] args) {
         Class<?> returnType = method.getReturnType();
-        return switch (request.method()) {
+        return switch (requestMapping.method()) {
             case GET -> this.get(args, returnType);
             case POST -> this.post(args, returnType);
             case PUT -> this.put(args, returnType);
             case DELETE -> this.delete(args, returnType);
-            default -> throw new IllegalArgumentException("Unsupported method: " + request.method());
+            default -> throw new IllegalArgumentException("Unsupported method: " + requestMapping.method());
         };
     }
 
@@ -58,7 +58,7 @@ public class MethodHandler {
         MDCUtils.setupMDC();
         try {
             this.applyRequestInterceptors(getRequest);
-            getRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args), getRequest.getQueryParameters()));
+            getRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + requestMapping.path(), args), getRequest.getQueryParameters()));
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute get method:{}", method);
             }
@@ -105,24 +105,26 @@ public class MethodHandler {
         if (CollectionUtils.isEmpty(queryParameters)) {
             return baseUrl;
         }
-        return baseUrl + "?" + queryParameters.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining("&"));
+
+        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl);
+        MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
+        queryParameters.forEach(queryParams::add);
+        uriComponentsBuilder.queryParams(queryParams);
+
+        return uriComponentsBuilder.toUriString();
     }
 
     public <T> T post(Object[] args, Class<T> returnType) {
-        if (args != null && args.length > 1) {
-            logger.info("POST request only uses the first argument as request body, other arguments are ignored unless annotated with @PathParam");
-        }
         PostRequest postRequest = (PostRequest) new HttpRequest.HttpRequestBuilder()
-                .url(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args))
                 .method(HttpMethod.POST)
-                .header("Content-Type", request.contentType())
-                .body(args == null ? null : args[0])
+                .header("Content-Type", requestMapping.contentType())
+                .queryParameters(this.resolveQueryParameters(args))
+                .body(getRequestBody(args))
                 .build();
         MDCUtils.setupMDC();
         try {
             this.applyRequestInterceptors(postRequest);
+            postRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + requestMapping.path(), args), postRequest.getQueryParameters()));
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute post method:{}", method);
             }
@@ -132,19 +134,34 @@ public class MethodHandler {
         }
     }
 
-    public <T> T put(Object[] args, Class<T> returnType) {
-        if (args != null && args.length > 1) {
-            logger.info("PUT request only uses the first argument as request body, other arguments are ignored unless annotated with @PathParam");
+    private Object getRequestBody(Object[] args) {
+        if (args == null) {
+            return null;
         }
+        if (args.length == 1) {
+            return args[0];
+        } else {
+            for (int i = 0; i < args.length; i++) {
+                MethodParameter methodParameter = new MethodParameter(method, i);
+                if (methodParameter.hasParameterAnnotation(RequestBody.class)) {
+                    return args[i];
+                }
+            }
+        }
+        return null;
+    }
+
+    public <T> T put(Object[] args, Class<T> returnType) {
         PutRequest putRequest = (PutRequest) new HttpRequest.HttpRequestBuilder()
-                .url(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args))
                 .method(HttpMethod.PUT)
-                .header("Content-Type", request.contentType())
-                .body(args == null ? null : args[0])
+                .header("Content-Type", requestMapping.contentType())
+                .queryParameters(this.resolveQueryParameters(args))
+                .body(getRequestBody(args))
                 .build();
         MDCUtils.setupMDC();
         try {
             this.applyRequestInterceptors(putRequest);
+            putRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + requestMapping.path(), args), putRequest.getQueryParameters()));
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute put method:{}", method);
             }
@@ -162,7 +179,7 @@ public class MethodHandler {
         MDCUtils.setupMDC();
         try {
             this.applyRequestInterceptors(deleteRequest);
-            deleteRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + request.path(), args), deleteRequest.getQueryParameters()));
+            deleteRequest.setUrl(this.buildUrlWithQueryParameters(this.resolvePathParameters(apiContext.getEndpoint() + requestMapping.path(), args), deleteRequest.getQueryParameters()));
             if (logger.isDebugEnabled()) {
                 logger.debug("Execute delete method:{}", method);
             }
@@ -218,10 +235,10 @@ public class MethodHandler {
 
     private Mono<HttpResponse> retryWrapper(HttpRequest request, Retry retry) {
         Map<String, String> mdcContext = MDC.getCopyOfContextMap();
-        Mono<HttpResponse> mono = retry == null ? this.getMono(request) : Mono.defer(() -> {
+        Mono<HttpResponse> mono = retry == null ? this.execute(request) : Mono.defer(() -> {
                     MDCUtils.setContextMap(mdcContext);
                     try {
-                        return this.getMono(request);
+                        return this.execute(request);
                     } finally {
                         MDCUtils.cleanupMDC();
                     }
@@ -235,6 +252,8 @@ public class MethodHandler {
                                     boolean retryable = httpException.retryable();
                                     if (retryable) {
                                         logger.debug("Retrying request due to: {}", throwable.getMessage());
+                                    } else {
+                                        logger.warn("Non-retryable exception due to: {}", throwable.getMessage());
                                     }
                                     return retryable;
                                 }
@@ -254,6 +273,7 @@ public class MethodHandler {
                         .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                             Throwable failure = retrySignal.failure();
                             if (failure instanceof HttpException httpException) {
+                                httpException.setTotalRetries(retrySignal.totalRetries() + 1);
                                 return httpException;
                             }
                             return new HttpException(500, "Request failed after " + retry.maxAttempts() + " attempts", failure);
@@ -262,8 +282,8 @@ public class MethodHandler {
                 .onErrorResume(throwable -> {
                     MDCUtils.setContextMap(mdcContext);
                     try {
-                        logger.debug("Request failed after retry {} times", retry.maxAttempts());
-                        if (throwable instanceof HttpException) {
+                        if (throwable instanceof HttpException httpException) {
+                            logger.debug("Request failed after retry {} times", httpException.getTotalRetries());
                             return Mono.error(throwable);
                         }
                         return Mono.error(new HttpException(500, "Request failed after retry " + retry.maxAttempts() + " times", throwable));
@@ -281,7 +301,7 @@ public class MethodHandler {
         });
     }
 
-    private Mono<HttpResponse> getMono(HttpRequest request) {
+    private Mono<HttpResponse> execute(HttpRequest request) {
         return switch (request) {
             case GetRequest getRequest -> httpClient.getAsync(getRequest);
             case PutRequest putRequest -> httpClient.putAsync(putRequest);

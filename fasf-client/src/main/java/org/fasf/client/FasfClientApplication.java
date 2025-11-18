@@ -28,16 +28,16 @@ public class FasfClientApplication {
     @Bean
     public CommandLineRunner runner() {
         return args -> {
-            String district = aMapApi.district("your amapapi key", "成都", "1");
+            String district = aMapApi.district("cc316454609278510abd9b93f1fc77a4", "四川", "2");
             System.out.println(district);
-            Mono<String> districtAsync = aMapApi.districtAsync("your amapapi key", "成都", "1");
+            Mono<String> districtAsync = aMapApi.districtAsync("cc316454609278510abd9b93f1fc77a4", "成都", "1");
             System.out.println("block" + districtAsync.block());
 
 //            Mono<OrderInfoVO> mono = orderInfoApi.getOrderInfo("12345");
 //            mono.flux().subscribe(data -> System.out.println(data),err -> System.out.println(err),() -> System.out.println("complete success"));
 //            System.out.println(JSON.toJson(mono.block()));
-//
-//            OrderInfoVO orderInfo = orderInfoApi.getOrderInfo(new OrderInfoRO("12345"));
+
+//            OrderInfoVO orderInfo = orderInfoApi.getOrderInfo(new OrderInfoRO("12345"), "replace", "key");
 //            System.out.println(JSON.toJson(orderInfo));
         };
     }

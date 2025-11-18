@@ -8,8 +8,8 @@ public class PostRequest extends HttpRequest {
     private Object originBody;
     private String body;
 
-    public PostRequest(String url, Map<String, String> headers, Object originBody) {
-        super(url, headers);
+    public PostRequest(String url, Map<String, String> headers, Map<String,String> queryParameters, Object originBody) {
+        super(url, headers,queryParameters);
         this.originBody = originBody;
         this.body = JSON.toJson(originBody);
     }
