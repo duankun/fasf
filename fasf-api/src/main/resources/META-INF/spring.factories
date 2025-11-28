@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-org.fasf.mqyz.autoconfigure.FasfAutoConfiguration
+org.fasf.mqyz.autoconfigure.FasfApiAutoConfiguration

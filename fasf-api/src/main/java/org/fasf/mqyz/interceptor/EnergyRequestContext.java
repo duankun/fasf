@@ -6,6 +6,7 @@ import cn.hutool.json.JSONObject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.fasf.mqyz.autoconfigure.FasfApiProperties;
+import org.springframework.beans.factory.DisposableBean;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.Executors;
@@ -17,8 +18,8 @@ import java.util.concurrent.TimeUnit;
  * @date: 2025/11/28
  */
 @Slf4j
-public class EnergyRequestContext {
-    private FasfApiProperties fasfApiProperties;
+public class EnergyRequestContext implements DisposableBean {
+    private final FasfApiProperties fasfApiProperties;
     private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     @Getter
     private volatile String sm4Key;
@@ -39,12 +40,13 @@ public class EnergyRequestContext {
     }
     @PostConstruct
     private void init(){
+        log.info("init energy api context");
         refreshContext();
         scheduledExecutorService.scheduleAtFixedRate(this::refreshContext, 10, 10, TimeUnit.HOURS);
     }
 
     private void refreshContext(){
-        log.info("能源api请求上下文刷新");
+        log.info("refresh energy api context");
         sm4Key = SMUtils.generateSM4Key()[1];
         JSONObject jsonObject = login(sm4Key);
         accessToken = jsonObject.getStr("access_token");
@@ -76,5 +78,11 @@ public class EnergyRequestContext {
         String decryptedResult = SMUtils.SM4Decrypt(result, sm4Key);
         log.info("decryptedResult:{}", decryptedResult);
         return new JSONObject(decryptedResult);
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        log.info("destroy energy api context");
+        scheduledExecutorService.shutdown();
     }
 }

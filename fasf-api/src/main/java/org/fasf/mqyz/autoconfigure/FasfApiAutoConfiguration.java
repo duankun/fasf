@@ -22,7 +22,7 @@ import reactor.core.scheduler.Schedulers;
         havingValue = "true",
         matchIfMissing = true
 )
-public class FasfAutoConfiguration {
+public class FasfApiAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(HttpClient.class)
