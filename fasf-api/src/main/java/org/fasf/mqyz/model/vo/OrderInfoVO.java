@@ -1,4 +1,4 @@
-package org.fasf.model.vo;
+package org.fasf.mqyz.model.vo;
 
 import java.io.Serializable;
 import java.math.BigDecimal;

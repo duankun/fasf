@@ -84,13 +84,18 @@ public class HttpRequest implements Serializable {
         }
 
         public HttpRequest build() {
-            return switch (method) {
-                case GET -> new GetRequest(url, headers, queryParameters);
-                case POST -> new PostRequest(url, headers, queryParameters, originBody);
-                case PUT -> new PutRequest(url, headers, queryParameters, originBody);
-                case DELETE -> new DeleteRequest(url, headers, queryParameters);
-                default -> throw new IllegalArgumentException("Invalid HTTP method:" + method);
-            };
+            switch (method) {
+                case GET:
+                    return new GetRequest(url, headers, queryParameters);
+                case POST:
+                    return new PostRequest(url, headers, queryParameters, originBody);
+                case PUT:
+                    return new PutRequest(url, headers, queryParameters, originBody);
+                case DELETE:
+                    return new DeleteRequest(url, headers, queryParameters);
+                default:
+                    throw new IllegalArgumentException("Invalid HTTP method:" + method);
+            }
         }
     }
 }

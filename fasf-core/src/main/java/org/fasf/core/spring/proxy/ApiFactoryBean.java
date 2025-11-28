@@ -1,6 +1,5 @@
 package org.fasf.core.spring.proxy;
 
-import jakarta.annotation.Resource;
 import org.fasf.core.http.HttpClient;
 import org.fasf.core.interceptor.RequestInterceptor;
 import org.fasf.core.interceptor.ResponseInterceptor;
@@ -8,6 +7,7 @@ import org.fasf.core.spring.context.ApiContextSupport;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import javax.annotation.Resource;
 import java.lang.reflect.Proxy;
 import java.util.List;
 

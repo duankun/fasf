@@ -41,13 +41,18 @@ public class MethodHandler {
 
     public Object invoke(Object[] args) {
         Class<?> returnType = method.getReturnType();
-        return switch (requestMapping.method()) {
-            case GET -> this.get(args, returnType);
-            case POST -> this.post(args, returnType);
-            case PUT -> this.put(args, returnType);
-            case DELETE -> this.delete(args, returnType);
-            default -> throw new IllegalArgumentException("Unsupported method: " + requestMapping.method());
-        };
+        HttpMethod httpMethod = requestMapping.method();
+        if (httpMethod == HttpMethod.GET) {
+            return this.get(args, returnType);
+        } else if (httpMethod == HttpMethod.PUT) {
+            return this.put(args, returnType);
+        } else if (httpMethod == HttpMethod.POST) {
+            return this.post(args, returnType);
+        } else if (httpMethod == HttpMethod.DELETE) {
+            return this.delete(args, returnType);
+        } else {
+            throw new IllegalArgumentException("Unsupported method: " + requestMapping.method());
+        }
     }
 
     public <T> T get(Object[] args, Class<T> returnType) {
@@ -248,7 +253,8 @@ public class MethodHandler {
                         .filter(throwable -> {
                             MDCUtils.setContextMap(mdcContext);
                             try {
-                                if (throwable instanceof HttpException httpException) {
+                                if (throwable instanceof HttpException) {
+                                    HttpException httpException = (HttpException) throwable;
                                     boolean retryable = httpException.retryable();
                                     if (retryable) {
                                         logger.debug("Retrying request due to: {}", throwable.getMessage());
@@ -272,7 +278,8 @@ public class MethodHandler {
                         })
                         .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                             Throwable failure = retrySignal.failure();
-                            if (failure instanceof HttpException httpException) {
+                            if (failure instanceof HttpException) {
+                                HttpException httpException = (HttpException) failure;
                                 httpException.setTotalRetries(retrySignal.totalRetries() + 1);
                                 return httpException;
                             }
@@ -282,7 +289,8 @@ public class MethodHandler {
                 .onErrorResume(throwable -> {
                     MDCUtils.setContextMap(mdcContext);
                     try {
-                        if (throwable instanceof HttpException httpException) {
+                        if (throwable instanceof HttpException) {
+                            HttpException httpException = (HttpException) throwable;
                             logger.debug("Request failed after retry {} times", httpException.getTotalRetries());
                             return Mono.error(throwable);
                         }
@@ -302,12 +310,16 @@ public class MethodHandler {
     }
 
     private Mono<HttpResponse> execute(HttpRequest request) {
-        return switch (request) {
-            case GetRequest getRequest -> httpClient.getAsync(getRequest);
-            case PutRequest putRequest -> httpClient.putAsync(putRequest);
-            case PostRequest postRequest -> httpClient.postAsync(postRequest);
-            case DeleteRequest deleteRequest -> httpClient.deleteAsync(deleteRequest);
-            default -> throw new IllegalArgumentException("Unsupported request type: " + request.getClass().getName());
-        };
+        if (request instanceof GetRequest) {
+            return httpClient.getAsync((GetRequest) request);
+        } else if (request instanceof PutRequest) {
+            return httpClient.putAsync((PutRequest) request);
+        } else if (request instanceof PostRequest) {
+            return httpClient.postAsync((PostRequest) request);
+        } else if (request instanceof DeleteRequest) {
+            return httpClient.deleteAsync((DeleteRequest) request);
+        } else {
+            throw new IllegalArgumentException("Unsupported request type: " + request.getClass().getName());
+        }
     }
 }

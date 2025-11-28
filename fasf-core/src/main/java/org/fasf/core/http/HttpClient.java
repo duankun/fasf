@@ -4,16 +4,16 @@ import org.fasf.core.util.MDCUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.Map;
+import java.util.Objects;
 
 public interface HttpClient {
     Mono<HttpResponse> getAsync(GetRequest request);
@@ -26,139 +26,60 @@ public interface HttpClient {
 
     class DefaultHttpClient implements HttpClient {
         private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
-        private final WebClient webClient;
-        private final Scheduler responseCallbackScheduler;
+        private final RestTemplate restTemplate;
+        private final Scheduler scheduler;
 
-        public DefaultHttpClient(WebClient webClient, Scheduler responseCallbackScheduler) {
-            this.webClient = webClient;
-            this.responseCallbackScheduler = responseCallbackScheduler;
+        public DefaultHttpClient(RestTemplate restTemplate, Scheduler scheduler) {
+            this.restTemplate = restTemplate;
+            this.scheduler = scheduler;
         }
-
-        public DefaultHttpClient(reactor.netty.http.client.HttpClient httpClient, Scheduler responseCallbackScheduler) {
-            this(WebClient.builder()
-                    .clientConnector(new ReactorClientHttpConnector(httpClient))
-                    .build(), responseCallbackScheduler);
-        }
-
         @Override
         public Mono<HttpResponse> getAsync(GetRequest request) {
-            Map<String, String> contextMap = MDC.getCopyOfContextMap();
-            if (logger.isDebugEnabled()) {
-                logger.debug("HTTP GetRequest: {}", request);
-            }
-            return webClient.get()
-                    .uri(request.getUrl())
-                    .headers(httpHeaders -> {
-                        if (request.getHeaders() != null) {
-                            request.getHeaders().forEach(httpHeaders::add);
-                        }
-                    }).exchangeToMono(this::handleResponse)
-                    .publishOn(responseCallbackScheduler)
-                    .onErrorMap(throwable -> {
-                        MDCUtils.setContextMap(contextMap);
-                        try {
-                            return this.handleException(throwable);
-                        } finally {
-                            MDCUtils.cleanupMDC();
-                        }
-                    });
+            Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+            return Mono.fromCallable(() -> {
+                MDCUtils.setContextMap(mdcContext);
+                try {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("get request:{}", request);
+                    }
+                } finally {
+                    MDCUtils.cleanupMDC();
+                }
+                HttpHeaders headers = new HttpHeaders();
+                request.getHeaders().forEach(headers::add);
+                HttpEntity<String> entity = new HttpEntity<>(headers);
+                ResponseEntity<String> getResponse = restTemplate.exchange(request.getUrl(), HttpMethod.GET, entity, String.class);                return new HttpResponse(getResponse.getStatusCode(), getResponse.getHeaders(), Objects.requireNonNull(getResponse.getBody()).getBytes());
+            }).publishOn(scheduler);
         }
 
         @Override
         public Mono<HttpResponse> postAsync(PostRequest request) {
-            Map<String, String> contextMap = MDC.getCopyOfContextMap();
-            if (logger.isDebugEnabled()) {
-                logger.debug("HTTP PostRequest: {}", request);
-            }
-            return webClient.post()
-                    .uri(request.getUrl())
-                    .headers(httpHeaders -> {
-                        if (request.getHeaders() != null) {
-                            request.getHeaders().forEach(httpHeaders::add);
-                        }
-                    })
-                    .bodyValue(request.getBody())
-                    .exchangeToMono(this::handleResponse)
-                    .publishOn(responseCallbackScheduler)
-                    .onErrorMap(throwable -> {
-                        try {
-                            MDCUtils.setContextMap(contextMap);
-                            return this.handleException(throwable);
-                        } finally {
-                            MDCUtils.cleanupMDC();
-                        }
-                    });
+            Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+            return Mono.fromCallable(() -> {
+                MDCUtils.setContextMap(mdcContext);
+                try {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("post request:{}", request);
+                    }
+                } finally {
+                    MDCUtils.cleanupMDC();
+                }
+                HttpHeaders headers = new HttpHeaders();
+                request.getHeaders().forEach(headers::add);
+                HttpEntity<String> entity = new HttpEntity<>(request.getBody(), headers);
+                ResponseEntity<String> postResponse = restTemplate.exchange(request.getUrl(), HttpMethod.POST, entity, String.class);
+                return new HttpResponse(postResponse.getStatusCode(), postResponse.getHeaders(), Objects.requireNonNull(postResponse.getBody()).getBytes());
+            }).subscribeOn(scheduler);
         }
 
         @Override
         public Mono<HttpResponse> putAsync(PutRequest request) {
-            Map<String, String> contextMap = MDC.getCopyOfContextMap();
-            if (logger.isDebugEnabled()) {
-                logger.debug("HTTP PutRequest: {}", request);
-            }
-            return webClient.put()
-                    .uri(request.getUrl())
-                    .headers(httpHeaders -> {
-                        if (request.getHeaders() != null) {
-                            request.getHeaders().forEach(httpHeaders::add);
-                        }
-                    })
-                    .bodyValue(request.getBody())
-                    .exchangeToMono(this::handleResponse)
-                    .publishOn(responseCallbackScheduler)
-                    .onErrorMap(throwable -> {
-                        try {
-                            MDCUtils.setContextMap(contextMap);
-                            return this.handleException(throwable);
-                        } finally {
-                            MDCUtils.cleanupMDC();
-                        }
-                    });
+            return null;
         }
 
         @Override
         public Mono<HttpResponse> deleteAsync(DeleteRequest request) {
-            Map<String, String> contextMap = MDC.getCopyOfContextMap();
-            if (logger.isDebugEnabled()) {
-                logger.debug("HTTP DeleteRequest: {}", request);
-            }
-            return webClient.delete()
-                    .uri(request.getUrl())
-                    .headers(httpHeaders -> {
-                        if (request.getHeaders() != null) {
-                            request.getHeaders().forEach(httpHeaders::add);
-                        }
-                    })
-                    .exchangeToMono(this::handleResponse)
-                    .publishOn(responseCallbackScheduler)
-                    .onErrorMap(throwable -> {
-                        try {
-                            MDCUtils.setContextMap(contextMap);
-                            return this.handleException(throwable);
-                        } finally {
-                            MDCUtils.cleanupMDC();
-                        }
-                    });
-        }
-
-        private Mono<HttpResponse> handleResponse(ClientResponse clientResponse) {
-            HttpStatus httpStatus = (HttpStatus) clientResponse.statusCode();
-            if (httpStatus.isError()) {
-                throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
-            }
-            return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
-        }
-
-        private Throwable handleException(Throwable throwable) {
-            if (throwable instanceof WebClientRequestException webClientRequestException) {
-                throw new HttpException(-1, webClientRequestException.getMessage());
-            }
-            if (throwable instanceof WebClientResponseException webClientResponseException) {
-                HttpStatus status = HttpStatus.valueOf(webClientResponseException.getStatusCode().value());
-                logger.warn("Request encounter an error:{} {}", status.value(), status.getReasonPhrase());
-                return new HttpException(status);
-            }
-            return throwable;
+            return null;
         }
     }
 }

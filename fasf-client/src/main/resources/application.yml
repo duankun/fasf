@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: fasf-client
+server:
+  port: 8083
+  servlet:
+    context-path: /fasf-client
+logging:
+  level:
+    org.fasf.core.spring.proxy.MethodHandler: DEBUG
+    org.fasf.core.http.HttpClient: DEBUG
+fasf:
+  api:
+    enable: true
+    basePackages: org.fasf.mqyz.api
+    energy:
+      endpoint: http://118.123.116.151:60002
+      sm2-public-key: 04a2165e44d3b1000c74e2bee295a20e2b2a8a1f0ae9d2dad66d1a794e8bf54e1b7385dc0431c5062b5939377ff7fcdd3ea805adedde93990cc88aace53533d80a

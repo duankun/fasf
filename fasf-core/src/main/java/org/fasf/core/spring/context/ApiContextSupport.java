@@ -5,14 +5,18 @@ import org.fasf.core.annotation.Interceptors;
 import org.fasf.core.interceptor.RequestInterceptor;
 import org.fasf.core.interceptor.ResponseInterceptor;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ApiContextSupport {
+    @Resource
+    private Environment environment;
     private ApiContext apiContext;
 
     public ApiContext getApiContext() {
@@ -24,18 +28,18 @@ public class ApiContextSupport {
         apiContext = new ApiContext();
         apiContext.setApiInterface(apiInterface);
         Api api = apiInterface.getAnnotation(Api.class);
-        apiContext.setEndpoint(api.endpoint());
+        apiContext.setEndpoint(environment.resolvePlaceholders(api.endpoint()));
         Interceptors classInterceptorsAnnotation = apiInterface.getAnnotation(Interceptors.class);
-        Set<Class<? extends RequestInterceptor>> specificClassRequestInterceptors = classInterceptorsAnnotation == null ? null : Set.of(classInterceptorsAnnotation.requestInterceptors());
+        Set<Class<? extends RequestInterceptor>> specificClassRequestInterceptors = classInterceptorsAnnotation == null ? null : new HashSet<>(Arrays.asList(classInterceptorsAnnotation.requestInterceptors()));
         Class<? extends ResponseInterceptor> specificClassResponseInterceptor = classInterceptorsAnnotation == null ? null : classInterceptorsAnnotation.responseInterceptor();
         Set<RequestInterceptor> classRequestInterceptors = CollectionUtils.isEmpty(requestInterceptors) || CollectionUtils.isEmpty(specificClassRequestInterceptors) ? new TreeSet<>() : requestInterceptors.stream().filter(interceptor -> specificClassRequestInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
-        ResponseInterceptor classResponseInterceptor = CollectionUtils.isEmpty(responseInterceptors) ||  specificClassResponseInterceptor == null ? null : responseInterceptors.stream().filter(interceptor -> specificClassResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
+        ResponseInterceptor classResponseInterceptor = CollectionUtils.isEmpty(responseInterceptors) || specificClassResponseInterceptor == null ? null : responseInterceptors.stream().filter(interceptor -> specificClassResponseInterceptor.isAssignableFrom(interceptor.getClass())).findFirst().orElse(null);
         Method[] declaredMethods = apiInterface.getDeclaredMethods();
         Assert.notEmpty(declaredMethods, "No methods found in api interface " + apiInterface.getName());
         Arrays.stream(declaredMethods).forEach(method -> {
             Interceptors methodInterceptorsAnnotation = AnnotatedElementUtils.findMergedAnnotation(method, Interceptors.class);
             if (methodInterceptorsAnnotation != null) {
-                Set<Class<? extends RequestInterceptor>> specificMethodRequestInterceptors = Set.of(methodInterceptorsAnnotation.requestInterceptors());
+                Set<Class<? extends RequestInterceptor>> specificMethodRequestInterceptors = new HashSet<>(Arrays.asList(methodInterceptorsAnnotation.requestInterceptors()));
                 Set<RequestInterceptor> methodRequestInterceptors = CollectionUtils.isEmpty(specificMethodRequestInterceptors) ? new TreeSet<>() : requestInterceptors.stream().filter(interceptor -> specificMethodRequestInterceptors.contains(interceptor.getClass())).collect(Collectors.toCollection(TreeSet::new));
                 methodRequestInterceptors.addAll(classRequestInterceptors);
                 apiContext.addRequestInterceptors(method, methodRequestInterceptors);
@@ -48,4 +52,5 @@ public class ApiContextSupport {
             }
         });
     }
+
 }

@@ -10,7 +10,7 @@
     <dependencies>
         <dependency>
             <groupId>org.fasf</groupId>
-            <artifactId>fasf-api</artifactId>
+            <artifactId>mqyz-report-api-spring-boot-starter</artifactId>
             <version>1.0.0</version>
         </dependency>
     </dependencies>

@@ -7,7 +7,8 @@ import java.lang.reflect.Type;
 public class ClassUtils {
     public static Class<?> getGenericReturnType(Method method) {
         Type genericReturnType = method.getGenericReturnType();
-        if (genericReturnType instanceof ParameterizedType paramType) {
+        if (genericReturnType instanceof ParameterizedType) {
+            ParameterizedType paramType = (ParameterizedType) genericReturnType;
             Type rawType = paramType.getRawType();
             if (rawType instanceof Class<?>) {
                 Type[] typeArguments = paramType.getActualTypeArguments();

@@ -42,9 +42,16 @@ public class HttpException extends RuntimeException {
 
     //this exception is retryable or not
     public boolean retryable() {
-        return switch (this.code) {
-            case 408, 429, 500, 502, 503, 504 -> true;
-            default -> false;
-        };
+        switch (this.code) {
+            case 408:
+            case 429:
+            case 500:
+            case 502:
+            case 503:
+            case 504:
+                return true;
+            default:
+                return false;
+        }
     }
 }
