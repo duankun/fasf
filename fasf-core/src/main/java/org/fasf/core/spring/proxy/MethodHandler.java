@@ -13,9 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
@@ -105,13 +102,23 @@ public class MethodHandler {
         if (CollectionUtils.isEmpty(queryParameters)) {
             return baseUrl;
         }
+        StringBuilder urlBuilder = new StringBuilder(baseUrl);
+        if (!baseUrl.contains("?")) {
+            urlBuilder.append("?");
+        } else if (!baseUrl.endsWith("&")) {
+            urlBuilder.append("&");
+        }
 
-        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl);
-        MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
-        queryParameters.forEach(queryParams::add);
-        uriComponentsBuilder.queryParams(queryParams);
+        boolean first = true;
+        for (Map.Entry<String, String> entry : queryParameters.entrySet()) {
+            if (!first) {
+                urlBuilder.append("&");
+            }
+            urlBuilder.append(entry.getKey()).append("=").append(entry.getValue());
+            first = false;
+        }
 
-        return uriComponentsBuilder.toUriString();
+        return urlBuilder.toString();
     }
 
     public <T> T post(Object[] args, Class<T> returnType) {

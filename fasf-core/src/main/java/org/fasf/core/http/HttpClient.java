@@ -73,6 +73,7 @@ public interface HttpClient {
             return webClient.post()
                     .uri(request.getUrl())
                     .headers(httpHeaders -> {
+                        logger.debug("Apply request headers: {}", request.getHeaders());
                         if (request.getHeaders() != null) {
                             request.getHeaders().forEach(httpHeaders::add);
                         }
@@ -146,6 +147,7 @@ public interface HttpClient {
             if (httpStatus.isError()) {
                 throw new WebClientResponseException(httpStatus.value(), httpStatus.getReasonPhrase(), null, null, null);
             }
+            logger.debug("HTTP Response: {}", clientResponse);
             return clientResponse.bodyToMono(byte[].class).map(bytes -> new HttpResponse(clientResponse.statusCode(), clientResponse.headers().asHttpHeaders(), bytes));
         }
 

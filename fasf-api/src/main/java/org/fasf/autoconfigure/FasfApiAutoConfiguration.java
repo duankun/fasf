@@ -2,9 +2,15 @@ package org.fasf.autoconfigure;
 
 import io.netty.channel.ChannelOption;
 import org.fasf.core.http.HttpClient;
+import org.fasf.core.interceptor.ResponseInterceptor;
 import org.fasf.core.spring.annotation.ApiScan;
+import org.fasf.interceptor.AESResponseInterceptor;
+import org.fasf.interceptor.AuthorizationInterceptor;
+import org.fasf.interceptor.TraceIdInterceptor;
+import org.fasf.interceptor.encrypt.AESEncryptRequestInterceptor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -23,7 +29,8 @@ import java.util.concurrent.Executors;
         havingValue = "true",
         matchIfMissing = true
 )
-public class FasfAutoConfiguration {
+@EnableConfigurationProperties(FasfApiProperties.class)
+public class FasfApiAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(HttpClient.class)
@@ -48,5 +55,30 @@ public class FasfAutoConfiguration {
         return new HttpClient.DefaultHttpClient(WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build(), Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor()));
+    }
+
+    @Bean
+    public AESEncryptRequestInterceptor aesEncryptRequestInterceptor() {
+        return new AESEncryptRequestInterceptor();
+    }
+
+    @Bean
+    public AESResponseInterceptor aesResponseInterceptor() {
+        return new AESResponseInterceptor();
+    }
+
+    @Bean
+    public AuthorizationInterceptor authorizationInterceptor() {
+        return new AuthorizationInterceptor();
+    }
+
+    @Bean
+    public TraceIdInterceptor traceIdInterceptor() {
+        return new TraceIdInterceptor();
+    }
+
+    @Bean
+    public ResponseInterceptor.NoOpResponseInterceptor noOpResponseInterceptor() {
+        return new ResponseInterceptor.NoOpResponseInterceptor();
     }
 }
