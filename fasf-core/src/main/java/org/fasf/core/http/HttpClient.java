@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.Map;
 import java.util.Objects;
@@ -33,11 +34,12 @@ public interface HttpClient {
             this.restTemplate = restTemplate;
             this.scheduler = scheduler;
         }
+
         @Override
         public Mono<HttpResponse> getAsync(GetRequest request) {
-            Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
             return Mono.fromCallable(() -> {
-                MDCUtils.setContextMap(mdcContext);
+                MDCUtils.setContextMap(contextMap);
                 try {
                     if (logger.isDebugEnabled()) {
                         logger.debug("get request:{}", request);
@@ -48,15 +50,23 @@ public interface HttpClient {
                 HttpHeaders headers = new HttpHeaders();
                 request.getHeaders().forEach(headers::add);
                 HttpEntity<String> entity = new HttpEntity<>(headers);
-                ResponseEntity<String> getResponse = restTemplate.exchange(request.getUrl(), HttpMethod.GET, entity, String.class);                return new HttpResponse(getResponse.getStatusCode(), getResponse.getHeaders(), Objects.requireNonNull(getResponse.getBody()).getBytes());
-            }).publishOn(scheduler);
+                ResponseEntity<String> getResponse = restTemplate.exchange(request.getUrl(), HttpMethod.GET, entity, String.class);
+                return new HttpResponse(getResponse.getStatusCode(), getResponse.getHeaders(), Objects.requireNonNull(getResponse.getBody()).getBytes());
+            }).subscribeOn(scheduler).onErrorMap(throwable -> {
+                MDCUtils.setContextMap(contextMap);
+                try {
+                    return this.handleException(throwable);
+                } finally {
+                    MDCUtils.cleanupMDC();
+                }
+            });
         }
 
         @Override
         public Mono<HttpResponse> postAsync(PostRequest request) {
-            Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
             return Mono.fromCallable(() -> {
-                MDCUtils.setContextMap(mdcContext);
+                MDCUtils.setContextMap(contextMap);
                 try {
                     if (logger.isDebugEnabled()) {
                         logger.debug("post request:{}", request);
@@ -69,17 +79,34 @@ public interface HttpClient {
                 HttpEntity<String> entity = new HttpEntity<>(request.getBody(), headers);
                 ResponseEntity<String> postResponse = restTemplate.exchange(request.getUrl(), HttpMethod.POST, entity, String.class);
                 return new HttpResponse(postResponse.getStatusCode(), postResponse.getHeaders(), Objects.requireNonNull(postResponse.getBody()).getBytes());
-            }).subscribeOn(scheduler);
+            }).subscribeOn(scheduler).onErrorMap(throwable -> {
+                MDCUtils.setContextMap(contextMap);
+                try {
+                    return this.handleException(throwable);
+                } finally {
+                    MDCUtils.cleanupMDC();
+                }
+            });
         }
 
         @Override
         public Mono<HttpResponse> putAsync(PutRequest request) {
-            return null;
+            throw new NotImplementedException();
         }
 
         @Override
         public Mono<HttpResponse> deleteAsync(DeleteRequest request) {
-            return null;
+            throw new NotImplementedException();
+        }
+
+        private Throwable handleException(Throwable throwable) {
+            if (throwable instanceof HttpException) {
+                HttpException httpException = (HttpException) throwable;
+                logger.warn("Request encounter an error:{} {}", httpException.getCode(), httpException.getMessage());
+                return httpException;
+            }
+            return throwable;
         }
     }
+
 }

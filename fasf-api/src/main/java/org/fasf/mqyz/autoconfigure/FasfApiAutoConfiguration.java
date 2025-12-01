@@ -1,6 +1,7 @@
 package org.fasf.mqyz.autoconfigure;
 
 import org.fasf.core.http.HttpClient;
+import org.fasf.core.http.HttpException;
 import org.fasf.core.spring.annotation.ApiScan;
 import org.fasf.mqyz.interceptor.EnergyAuthorizationRequestInterceptor;
 import org.fasf.mqyz.interceptor.EnergyDecryptResponseInterceptor;
@@ -12,7 +13,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.ResponseErrorHandler;
 import reactor.core.scheduler.Schedulers;
+
+import java.io.IOException;
+import java.time.Duration;
 
 @Configuration
 @ApiScan(basePackages = "${fasf.api.basePackages}")
@@ -27,8 +33,21 @@ public class FasfApiAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(HttpClient.class)
     public HttpClient createHttpClient() {
-        RestTemplateBuilder restTemplateBuilder = new RestTemplateBuilder();
-        return new HttpClient.DefaultHttpClient(restTemplateBuilder.build(), Schedulers.newBoundedElastic(100, 1000, "fasf-http-client"));
+        RestTemplateBuilder builder = new RestTemplateBuilder()
+                .setConnectTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofSeconds(30))
+                .errorHandler(new ResponseErrorHandler(){
+                    @Override
+                    public boolean hasError(ClientHttpResponse clientHttpResponse) throws IOException {
+                        return clientHttpResponse.getStatusCode().isError();
+                    }
+
+                    @Override
+                    public void handleError(ClientHttpResponse clientHttpResponse) throws IOException {
+                        throw new HttpException(clientHttpResponse.getStatusCode().value(), clientHttpResponse.getStatusCode().getReasonPhrase(), null);
+                    }
+                });
+        return new HttpClient.DefaultHttpClient(builder.build(), Schedulers.newBoundedElastic(100, 1000, "fasf-http-client"));
     }
 
     @Bean
