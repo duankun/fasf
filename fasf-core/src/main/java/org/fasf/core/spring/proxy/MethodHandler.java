@@ -1,5 +1,6 @@
 package org.fasf.core.spring.proxy;
 
+import com.fasterxml.jackson.databind.JavaType;
 import org.fasf.core.annotation.*;
 import org.fasf.core.http.*;
 import org.fasf.core.interceptor.RequestInterceptor;
@@ -230,13 +231,14 @@ public class MethodHandler {
                 //noinspection unchecked
                 return (T) mono;
             } else {
+                JavaType javaType = JSON.getObjectMapper().getTypeFactory().constructType(method.getGenericReturnType());
                 //noinspection unchecked
-                return (T) mono.map(response -> JSON.fromJson(response.getBodyAsString(), genericReturnType));
+                return (T) mono.map(response -> JSON.fromJson(response.getBodyAsString(), javaType.containedType(0)));
             }
         } else {
             HttpResponse httpResponse = mono.block();
             //noinspection unchecked
-            return httpResponse == null ? null : HttpResponse.class.isAssignableFrom(returnType) ? (T) httpResponse : JSON.fromJson(httpResponse.getBodyAsString(), returnType);
+            return httpResponse == null ? null : HttpResponse.class.isAssignableFrom(returnType) ? (T) httpResponse : JSON.fromJson(httpResponse.getBodyAsString(), JSON.getObjectMapper().getTypeFactory().constructType(method.getGenericReturnType()));
         }
     }
 
