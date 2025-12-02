@@ -11,7 +11,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -36,11 +35,8 @@ public class FasfClientApplication {
             ro.setStatisticsTime("2025-01-01 00:00:00");
             ro.setPageNum(1L);
             ro.setDateType("YEAR");
-            Mono<EnergyResult<List<MonthEnergyConsumption>>> result = energyApi.getTrend(ro);
-            result.subscribe(energyResult -> {
-                logger.info("{}", energyResult);
-                System.out.println(JSON.toJson(energyResult));
-            });
+            EnergyResult<List<MonthEnergyConsumption>> result = energyApi.getTrend(ro);
+                System.out.println(JSON.toJson(result));
 
         };
     }
