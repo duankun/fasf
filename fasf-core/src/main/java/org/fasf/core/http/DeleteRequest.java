@@ -9,7 +9,7 @@ public class DeleteRequest extends HttpRequest {
     private final Map<String, String> originQueryParameters = new HashMap<>();
 
     public DeleteRequest(String url, Map<String, String> headers, Map<String, String> queryParameters) {
-        super(url);
+        super(url, headers, queryParameters);
         this.originQueryParameters.putAll(queryParameters);
     }
 

@@ -10,10 +10,6 @@ public class HttpRequest implements Serializable {
     private Map<String, String> headers = new HashMap<>();
     private Map<String, String> queryParameters = new HashMap<>();
 
-    public HttpRequest(String url) {
-        this.url = url;
-    }
-
     public HttpRequest(String url, Map<String, String> headers, Map<String, String> queryParameters) {
         this.url = url;
         this.queryParameters = queryParameters;

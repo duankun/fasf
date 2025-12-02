@@ -32,7 +32,7 @@ public class FasfApiAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(HttpClient.class)
-    public HttpClient createHttpClient() {
+    public HttpClient httpClient() {
         RestTemplateBuilder builder = new RestTemplateBuilder()
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(30))
@@ -47,7 +47,7 @@ public class FasfApiAutoConfiguration {
                         throw new HttpException(clientHttpResponse.getStatusCode().value(), clientHttpResponse.getStatusCode().getReasonPhrase(), null);
                     }
                 });
-        return new HttpClient.DefaultHttpClient(builder.build(), Schedulers.newBoundedElastic(100, 1000, "fasf-http-client"));
+        return new HttpClient.DefaultHttpClient(builder.build(), Schedulers.newBoundedElastic(100, 10000, "fasf-http-client"));
     }
 
     @Bean

@@ -8,10 +8,15 @@ import org.fasf.mqyz.interceptor.EnergyAuthorizationRequestInterceptor;
 import org.fasf.mqyz.interceptor.EnergyDecryptResponseInterceptor;
 import org.fasf.mqyz.interceptor.EnergyEncryptRequestInterceptor;
 import org.fasf.mqyz.model.ro.TrendRO;
+import org.fasf.mqyz.model.vo.EnergyResult;
+import org.fasf.mqyz.model.vo.MonthEnergyConsumption;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Api(endpoint = "${fasf.api.energy.endpoint}")
 public interface EnergyApi {
     @Interceptors(requestInterceptors = {EnergyAuthorizationRequestInterceptor.class, EnergyEncryptRequestInterceptor.class}, responseInterceptor = EnergyDecryptResponseInterceptor.class)
     @RequestMapping(path = "/energy/energy/api/energy/analyse/consumption/getTrend", method = HttpMethod.POST)
-    String getTrend(TrendRO ro);
+    Mono<EnergyResult<List<MonthEnergyConsumption>>> getTrend(TrendRO ro);
 }

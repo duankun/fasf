@@ -31,21 +31,23 @@ public class EnergyRequestContext implements DisposableBean {
     public EnergyRequestContext(FasfApiProperties fasfApiProperties) {
         this.fasfApiProperties = fasfApiProperties;
     }
+
     public String getSm2PublicKey() {
         return fasfApiProperties.getEnergy().getSm2PublicKey();
     }
 
-    public String getEndpoint(){
+    public String getEndpoint() {
         return fasfApiProperties.getEnergy().getEndpoint();
     }
+
     @PostConstruct
-    private void init(){
+    private void init() {
         log.info("init energy api context");
         refreshContext();
         scheduledExecutorService.scheduleAtFixedRate(this::refreshContext, 10, 10, TimeUnit.HOURS);
     }
 
-    private void refreshContext(){
+    private void refreshContext() {
         log.info("refresh energy api context");
         sm4Key = SMUtils.generateSM4Key()[1];
         JSONObject jsonObject = login(sm4Key);
