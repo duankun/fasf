@@ -1,14 +1,34 @@
 spring:
   application:
     name: fasf-client
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://192.168.0.181:5432/variantorm_maoqiangyouzhi?currentSchema=variantorm_maoqiangyouzhi&useUnicode=true&characterEncoding=utf8&useSSL=false&autoReconnect=true
+    username: postgres
+    password: k@@M09ybJ5hwX5rD
+    hikari:
+      #池中维护的最小空闲连接数
+      minimum-idle: 10
+      #池中最大连接数，包括闲置和使用中的连接
+      maximum-pool-size: 50
+      #连接池的用户定义名称
+      pool-name: metaHikariCP
+      #连接允许在池中闲置的最长时间(ms)
+      idle-timeout: 30000
+      #池中连接最长生命周期(ms)
+      max-lifetime: 1800000
+      #等待来自池的连接的最大毫秒数(ms)
+      connection-timeout: 30000
+      #设置连接被占用的超时时间(ms)
+      leak-detection-threshold: 40000
+    tomcat:
+      test-on-borrow: false
+      test-while-idle: true
+      time-between-eviction-runs-millis: 3600000
 server:
   port: 8083
   servlet:
-    context-path: /fasf-client
-logging:
-  level:
-    org.fasf.core.spring.proxy.MethodHandler: DEBUG
-    org.fasf.core.http.HttpClient: DEBUG
+    context-path: /mqyz
 fasf:
   api:
     enable: true
@@ -16,3 +36,5 @@ fasf:
     energy:
       endpoint: http://118.123.116.151:60002
       sm2-public-key: 04a2165e44d3b1000c74e2bee295a20e2b2a8a1f0ae9d2dad66d1a794e8bf54e1b7385dc0431c5062b5939377ff7fcdd3ea805adedde93990cc88aace53533d80a
+    mele:
+      endpoint: http://192.168.0.71:8786

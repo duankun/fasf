@@ -1,4 +1,4 @@
-package org.fasf.mqyz.model.vo;
+package org.fasf.mqyz.model.vo.energy;
 
 import lombok.Data;
 

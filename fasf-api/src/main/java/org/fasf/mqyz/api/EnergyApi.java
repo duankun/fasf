@@ -8,8 +8,8 @@ import org.fasf.mqyz.interceptor.EnergyAuthorizationRequestInterceptor;
 import org.fasf.mqyz.interceptor.EnergyDecryptResponseInterceptor;
 import org.fasf.mqyz.interceptor.EnergyEncryptRequestInterceptor;
 import org.fasf.mqyz.model.ro.TrendRO;
-import org.fasf.mqyz.model.vo.EnergyResult;
-import org.fasf.mqyz.model.vo.MonthEnergyConsumption;
+import org.fasf.mqyz.model.vo.energy.EnergyResult;
+import org.fasf.mqyz.model.vo.energy.MonthEnergyConsumption;
 
 import java.util.List;
 

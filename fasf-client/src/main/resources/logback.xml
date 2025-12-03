@@ -5,6 +5,13 @@
         </encoder>
     </appender>
 
+
+    <!-- JdbcTemplate SQL 打印配置 -->
+    <logger name="org.springframework.jdbc.core" level="DEBUG"/>
+    <logger name="org.springframework.jdbc.core.StatementCreatorUtils" level="TRACE"/>
+
+    <logger name="org.fasf.core" level="DEBUG"/>
+
     <root level="info">
         <appender-ref ref="STDOUT"/>
     </root>
