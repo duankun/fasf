@@ -74,6 +74,10 @@ public class JSON {
         if (json == null || json.isEmpty()) {
             return null;
         }
+        if (String.class.isAssignableFrom(javaType.getRawClass())) {
+            //noinspection unchecked
+            return (T) json;
+        }
         try {
             return objectMapper.readValue(json, javaType);
         } catch (JsonProcessingException e) {
