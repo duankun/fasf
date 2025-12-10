@@ -1,12 +1,13 @@
 package org.fasf.mqyz.interceptor;
 
-import cn.hutool.http.HttpResponse;
-import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.fasf.mqyz.autoconfigure.FasfApiProperties;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.RequestEntity;
+import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.Executors;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class EnergyRequestContext implements DisposableBean {
     private final FasfApiProperties fasfApiProperties;
+    private final RestTemplate restTemplate;
     private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     @Getter
     private volatile String sm4Key;
@@ -28,7 +30,8 @@ public class EnergyRequestContext implements DisposableBean {
     @Getter
     private volatile String tenantId;
 
-    public EnergyRequestContext(FasfApiProperties fasfApiProperties) {
+    public EnergyRequestContext(RestTemplate restTemplate,FasfApiProperties fasfApiProperties) {
+        this.restTemplate = restTemplate;
         this.fasfApiProperties = fasfApiProperties;
     }
 
@@ -68,14 +71,12 @@ public class EnergyRequestContext implements DisposableBean {
         log.info("queryString:{}", queryString);
         String url = getEndpoint() + "/dc/user/auth/oauth2/token?queryChain=" + queryString;
         log.info("url:{}", url);
-        cn.hutool.http.HttpRequest request = HttpUtil.createPost(url);
-        request.header("Content-Type", "application/x-www-form-urlencoded");
-        request.header("Authorization", "Basic c2N0ZWxjcDE6Y2NhMmQzYWU3YzU0YmY4ZTM4NTM=");
-        String sign = SMUtils.SM2Encrypt(sm4Key, getSm2PublicKey(), CodeType.Hex);
-        request.header("Message-Sign", sign);
-        log.info("Headers:{}", request.headers());
-        HttpResponse response = request.execute();
-        String result = response.body();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/x-www-form-urlencoded");
+        headers.add("Authorization", "Basic c2N0ZWxjcDE6Y2NhMmQzYWU3YzU0YmY4ZTM4NTM=");
+        headers.add("Message-Sign", SMUtils.SM2Encrypt(sm4Key, getSm2PublicKey(), CodeType.Hex));
+        RequestEntity<String> requestEntity = RequestEntity.post(url).headers(headers).body("");
+        String result = restTemplate.exchange(requestEntity, String.class).getBody();
         log.info("result:{}", result);
         String decryptedResult = SMUtils.SM4Decrypt(result, sm4Key);
         log.info("decryptedResult:{}", decryptedResult);

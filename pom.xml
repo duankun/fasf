@@ -5,8 +5,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>fasf-core</module>
-        <module>fasf-api</module>
-        <module>fasf-client</module>
+        <module>mqyz-report-api-spring-boot-starter</module>
     </modules>
 
     <modelVersion>4.0.0</modelVersion>

@@ -14,7 +14,9 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.ResponseErrorHandler;
+import org.springframework.web.client.RestTemplate;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
@@ -31,28 +33,35 @@ import java.time.Duration;
 public class FasfApiAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean(HttpClient.class)
-    public HttpClient httpClient() {
+    public RestTemplate restTemplate() {
         RestTemplateBuilder builder = new RestTemplateBuilder()
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(30))
-                .errorHandler(new ResponseErrorHandler(){
+                .errorHandler(new ResponseErrorHandler() {
                     @Override
-                    public boolean hasError(ClientHttpResponse clientHttpResponse) throws IOException {
+                    public boolean hasError(@Nullable ClientHttpResponse clientHttpResponse) throws IOException {
+                        assert clientHttpResponse != null;
                         return clientHttpResponse.getStatusCode().isError();
                     }
 
                     @Override
-                    public void handleError(ClientHttpResponse clientHttpResponse) throws IOException {
+                    public void handleError(@Nullable ClientHttpResponse clientHttpResponse) throws IOException {
+                        assert clientHttpResponse != null;
                         throw new HttpException(clientHttpResponse.getStatusCode().value(), clientHttpResponse.getStatusCode().getReasonPhrase(), null);
                     }
                 });
-        return new HttpClient.DefaultHttpClient(builder.build(), Schedulers.newBoundedElastic(100, 10000, "fasf-http-client"));
+        return builder.build();
     }
 
     @Bean
-    public EnergyRequestContext energyRequestContext(FasfApiProperties fasfApiProperties) {
-        return new EnergyRequestContext(fasfApiProperties);
+    @ConditionalOnMissingBean(HttpClient.class)
+    public HttpClient httpClient(RestTemplate restTemplate) {
+        return new HttpClient.DefaultHttpClient(restTemplate, Schedulers.newBoundedElastic(100, 10000, "fasf-http-client"));
+    }
+
+    @Bean
+    public EnergyRequestContext energyRequestContext(RestTemplate restTemplate, FasfApiProperties fasfApiProperties) {
+        return new EnergyRequestContext(restTemplate, fasfApiProperties);
     }
 
     @Bean
