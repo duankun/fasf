@@ -3,10 +3,6 @@ package org.fasf.mqyz.interceptor;
 import org.fasf.core.http.HttpResponse;
 import org.fasf.core.interceptor.ResponseInterceptor;
 
-/**
- * @author duankun
- * @date: 2025/11/28
- */
 public class EnergyDecryptResponseInterceptor implements ResponseInterceptor {
     private final EnergyRequestContext energyRequestContext;
 

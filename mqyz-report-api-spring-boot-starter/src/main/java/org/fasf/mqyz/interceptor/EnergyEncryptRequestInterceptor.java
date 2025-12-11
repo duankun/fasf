@@ -4,10 +4,6 @@ import org.fasf.core.http.HttpRequest;
 import org.fasf.core.http.PostRequest;
 import org.fasf.core.interceptor.RequestInterceptor;
 
-/**
- * @author duankun
- * @date: 2025/11/28
- */
 public class EnergyEncryptRequestInterceptor implements RequestInterceptor {
     private final EnergyRequestContext energyRequestContext;
 

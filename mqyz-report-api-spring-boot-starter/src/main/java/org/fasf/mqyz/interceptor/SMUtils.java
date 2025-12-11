@@ -1,9 +1,5 @@
 package org.fasf.mqyz.interceptor;
 
-/**
- * @author duankun
- * @date: 2025/11/28
- */
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.HexUtil;
 import cn.hutool.core.util.StrUtil;

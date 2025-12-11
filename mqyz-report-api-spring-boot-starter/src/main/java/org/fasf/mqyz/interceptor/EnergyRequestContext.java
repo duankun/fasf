@@ -14,10 +14,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author duankun
- * @date: 2025/11/28
- */
 @Slf4j
 public class EnergyRequestContext implements DisposableBean {
     private final FasfApiProperties fasfApiProperties;

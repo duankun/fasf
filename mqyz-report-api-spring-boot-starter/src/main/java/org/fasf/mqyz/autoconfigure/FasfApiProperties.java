@@ -3,10 +3,6 @@ package org.fasf.mqyz.autoconfigure;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * @author duankun
- * @date: 2025/11/28
- */
 @ConfigurationProperties(prefix = "fasf.api")
 @Data
 public class FasfApiProperties {

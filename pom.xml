@@ -33,29 +33,9 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.postgresql</groupId>
-                <artifactId>postgresql</artifactId>
-                <version>42.7.4</version>
-            </dependency>
-            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.36</version>
-            </dependency>
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk18on</artifactId>
-                <version>1.78.1</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.hutool</groupId>
-                <artifactId>hutool-crypto</artifactId>
-                <version>5.8.26</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.hutool</groupId>
-                <artifactId>hutool-all</artifactId>
-                <version>5.8.26</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
