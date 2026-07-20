@@ -13,6 +13,8 @@ public class FasfApiProperties {
     @Data
     public static class Energy {
         private String endpoint;
+        private String username;
+        private String password;
         private String sm2PublicKey;
     }
 }

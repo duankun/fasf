@@ -1,4 +1,4 @@
-package org.fasf.mqyz.interceptor;
+package org.fasf.sctel.util;
 
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.HexUtil;
@@ -10,6 +10,7 @@ import cn.hutool.crypto.asymmetric.KeyType;
 import cn.hutool.crypto.asymmetric.SM2;
 import cn.hutool.crypto.symmetric.SymmetricCrypto;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+import org.fasf.sctel.interceptor.CodeType;
 
 import java.io.UnsupportedEncodingException;
 import java.security.KeyPair;

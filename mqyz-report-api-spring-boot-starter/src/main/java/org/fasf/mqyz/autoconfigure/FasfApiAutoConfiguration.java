@@ -3,10 +3,10 @@ package org.fasf.mqyz.autoconfigure;
 import org.fasf.core.http.HttpClient;
 import org.fasf.core.http.HttpException;
 import org.fasf.core.spring.annotation.ApiScan;
-import org.fasf.mqyz.interceptor.EnergyAuthorizationRequestInterceptor;
-import org.fasf.mqyz.interceptor.EnergyDecryptResponseInterceptor;
-import org.fasf.mqyz.interceptor.EnergyEncryptRequestInterceptor;
 import org.fasf.mqyz.interceptor.EnergyRequestContext;
+import org.fasf.sctel.interceptor.AuthorizationRequestInterceptor;
+import org.fasf.sctel.interceptor.DecryptResponseInterceptor;
+import org.fasf.sctel.interceptor.EncryptRequestInterceptor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,9 +33,8 @@ import java.time.Duration;
 public class FasfApiAutoConfiguration {
 
     @Bean
-    public RestTemplate restTemplate() {
-        RestTemplateBuilder builder = new RestTemplateBuilder()
-                .setConnectTimeout(Duration.ofSeconds(5))
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        builder.setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(30))
                 .errorHandler(new ResponseErrorHandler() {
                     @Override
@@ -65,17 +64,17 @@ public class FasfApiAutoConfiguration {
     }
 
     @Bean
-    public EnergyAuthorizationRequestInterceptor energyAuthorizationRequestInterceptor(EnergyRequestContext energyRequestContext) {
-        return new EnergyAuthorizationRequestInterceptor(energyRequestContext);
+    public AuthorizationRequestInterceptor authorizationRequestInterceptor(EnergyRequestContext energyRequestContext) {
+        return new AuthorizationRequestInterceptor(energyRequestContext);
     }
 
     @Bean
-    public EnergyDecryptResponseInterceptor energyDecryptResponseInterceptor(EnergyRequestContext energyRequestContext) {
-        return new EnergyDecryptResponseInterceptor(energyRequestContext);
+    public DecryptResponseInterceptor decryptResponseInterceptor(EnergyRequestContext energyRequestContext) {
+        return new DecryptResponseInterceptor(energyRequestContext);
     }
 
     @Bean
-    public EnergyEncryptRequestInterceptor energyEncryptRequestInterceptor(EnergyRequestContext energyRequestContext) {
-        return new EnergyEncryptRequestInterceptor(energyRequestContext);
+    public EncryptRequestInterceptor encryptRequestInterceptor(EnergyRequestContext energyRequestContext) {
+        return new EncryptRequestInterceptor(energyRequestContext);
     }
 }

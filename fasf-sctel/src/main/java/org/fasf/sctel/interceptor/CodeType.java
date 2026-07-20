@@ -1,4 +1,4 @@
-package org.fasf.mqyz.interceptor;
+package org.fasf.sctel.interceptor;
 
 public enum CodeType {
     None("none","无编码"),

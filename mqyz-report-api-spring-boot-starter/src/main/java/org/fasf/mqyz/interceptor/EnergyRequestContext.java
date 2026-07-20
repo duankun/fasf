@@ -1,62 +1,38 @@
 package org.fasf.mqyz.interceptor;
 
-import cn.hutool.json.JSONObject;
-import lombok.Getter;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
+import org.fasf.core.util.JSON;
 import org.fasf.mqyz.autoconfigure.FasfApiProperties;
-import org.springframework.beans.factory.DisposableBean;
+import org.fasf.sctel.interceptor.AbstractRequestContext;
+import org.fasf.sctel.interceptor.CodeType;
+import org.fasf.sctel.util.SMUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.RequestEntity;
 import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.PostConstruct;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 @Slf4j
-public class EnergyRequestContext implements DisposableBean {
+public class EnergyRequestContext extends AbstractRequestContext {
     private final FasfApiProperties fasfApiProperties;
     private final RestTemplate restTemplate;
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-    @Getter
-    private volatile String sm4Key;
-    @Getter
-    private volatile String accessToken;
-    @Getter
-    private volatile String tenantId;
 
     public EnergyRequestContext(RestTemplate restTemplate,FasfApiProperties fasfApiProperties) {
         this.restTemplate = restTemplate;
         this.fasfApiProperties = fasfApiProperties;
     }
-
+    @Override
     public String getSm2PublicKey() {
         return fasfApiProperties.getEnergy().getSm2PublicKey();
     }
-
+    @Override
     public String getEndpoint() {
         return fasfApiProperties.getEnergy().getEndpoint();
     }
 
-    @PostConstruct
-    private void init() {
-        log.info("init energy api context");
-        refreshContext();
-        scheduledExecutorService.scheduleAtFixedRate(this::refreshContext, 10, 10, TimeUnit.HOURS);
-    }
-
-    private void refreshContext() {
-        log.info("refresh energy api context");
-        sm4Key = SMUtils.generateSM4Key()[1];
-        JSONObject jsonObject = login(sm4Key);
-        accessToken = jsonObject.getStr("access_token");
-        tenantId = jsonObject.getStr("tenantId");
-    }
-
-    public JSONObject login(String sm4Key) {
-        String userName = "sanfangjc";
-        String password = "P@ss2025";
+    @Override
+    public JsonNode login(String sm4Key) {
+        String userName = fasfApiProperties.getEnergy().getUsername();
+        String password = fasfApiProperties.getEnergy().getPassword();
         String code = "123456";
         String grant_type = "password";
         String scope = "server";
@@ -76,12 +52,7 @@ public class EnergyRequestContext implements DisposableBean {
         log.info("result:{}", result);
         String decryptedResult = SMUtils.SM4Decrypt(result, sm4Key);
         log.info("decryptedResult:{}", decryptedResult);
-        return new JSONObject(decryptedResult);
+        return JSON.readTree(decryptedResult);
     }
 
-    @Override
-    public void destroy() throws Exception {
-        log.info("destroy energy api context");
-        scheduledExecutorService.shutdown();
-    }
 }

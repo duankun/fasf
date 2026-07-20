@@ -51,7 +51,7 @@ public interface HttpClient {
                 request.getHeaders().forEach(headers::add);
                 HttpEntity<String> entity = new HttpEntity<>(headers);
                 ResponseEntity<String> getResponse = restTemplate.exchange(request.getUrl(), HttpMethod.GET, entity, String.class);
-                return new HttpResponse(getResponse.getStatusCode(), getResponse.getHeaders(), Objects.requireNonNull(getResponse.getBody()).getBytes());
+                return new HttpResponse(getResponse.getStatusCode(), getResponse.getHeaders(), getResponse.getBody() == null ? null : getResponse.getBody().getBytes());
             }).subscribeOn(scheduler).onErrorMap(throwable -> {
                 MDCUtils.setContextMap(contextMap);
                 try {
@@ -78,7 +78,7 @@ public interface HttpClient {
                 request.getHeaders().forEach(headers::add);
                 HttpEntity<String> entity = new HttpEntity<>(request.getBody(), headers);
                 ResponseEntity<String> postResponse = restTemplate.exchange(request.getUrl(), HttpMethod.POST, entity, String.class);
-                return new HttpResponse(postResponse.getStatusCode(), postResponse.getHeaders(), Objects.requireNonNull(postResponse.getBody()).getBytes());
+                return new HttpResponse(postResponse.getStatusCode(), postResponse.getHeaders(), postResponse.getBody() == null ? null : postResponse.getBody().getBytes());
             }).subscribeOn(scheduler).onErrorMap(throwable -> {
                 MDCUtils.setContextMap(contextMap);
                 try {
