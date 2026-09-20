@@ -20,15 +20,14 @@ public class ApiScannerRegistrar implements ImportBeanDefinitionRegistrar, Envir
 
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, @NonNull BeanDefinitionRegistry registry) {
-        AnnotationAttributes apiScanAttrs = AnnotationAttributes
-                .fromMap(importingClassMetadata.getAnnotationAttributes(ApiScan.class.getName()));
-        ClassPathApiScanner scanner = new ClassPathApiScanner(registry, Api.class);
+        AnnotationAttributes apiScanAttrs = AnnotationAttributes.fromMap(importingClassMetadata.getAnnotationAttributes(ApiScan.class.getName()));
         Assert.notNull(apiScanAttrs, "@ApiScan is not present on importing class");
         String[] basePackagesArray = apiScanAttrs.getStringArray("basePackages");
         List<String> resolvedBasePackages = new ArrayList<>();
         Arrays.stream(basePackagesArray).forEach(basePackage -> resolvedBasePackages.add(environment.resolvePlaceholders(basePackage)));
         List<String> allBasePackages = new ArrayList<>();
         resolvedBasePackages.forEach(basePackage -> allBasePackages.addAll(Arrays.asList(basePackage.split(","))));
+        ClassPathApiScanner scanner = new ClassPathApiScanner(registry, Api.class);
         scanner.doScan(allBasePackages.toArray(new String[0]));
     }
 
