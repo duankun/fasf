@@ -11,12 +11,12 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 public abstract class EncryptRequestInterceptor implements RequestInterceptor {
-    @Value("${fasf.api.encrypt.type.name}")
-    private String encryptTypeName;
+    @Value("${fasf.api.encrypt.type}")
+    private String encryptType;
 
     @Override
     public void intercept(HttpRequest request) {
-        request.addHeader(encryptTypeName, encryptType().name());
+        request.addHeader(encryptType, encryptType().name());
         try {
             interceptorInternal(request);
         } catch (Exception e) {

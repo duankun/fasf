@@ -1,0 +1,38 @@
+spring:
+    application:
+        name: fasf-client
+server:
+    servlet:
+        context-path: /fasf-client
+    port: 8083
+logging:
+    level:
+        org.fasf.core.spring.proxy.MethodHandler: DEBUG
+        org.fasf.core.http.HttpClient: DEBUG
+fasf:
+    api:
+        enable: true
+        base-packages: org.fasf.api
+        connection-provider:
+            max-connections: 1000
+            pending-acquire-timeout: 10
+            pending-acquire-maxCount: 2000
+            max-idle-time: 30
+            max-life-time: 5
+            evict-in-background: 60
+        loop-resources:
+            prefix: fasf-connection-provider
+            min-worker-count: 8
+        http-client:
+            connect-timeout-millis: 2000
+            response-timeout: 5
+            keep-alive: true
+        auth:
+            authorization:
+                name: Authorization
+                value: Bearer123456
+        traceId:
+                name: X-Trace-Id
+        encrypt:
+            type: aes
+            aesKey: MySecretKey12345

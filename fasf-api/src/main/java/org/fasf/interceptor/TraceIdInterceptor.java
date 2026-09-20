@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import static org.fasf.core.Constants.TRACE_ID;
 
 public class TraceIdInterceptor implements RequestInterceptor {
-    @Value("${fasf.api.trace.id.name}")
+    @Value("${fasf.api.traceId.name}")
     private String traceIdName;
 
     @Override

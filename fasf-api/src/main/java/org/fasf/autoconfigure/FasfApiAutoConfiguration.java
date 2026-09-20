@@ -5,9 +5,10 @@ import org.fasf.core.http.HttpClient;
 import org.fasf.core.interceptor.ResponseInterceptor;
 import org.fasf.core.spring.annotation.ApiScan;
 import org.fasf.interceptor.AESResponseInterceptor;
-import org.fasf.interceptor.AuthorizationInterceptor;
 import org.fasf.interceptor.TraceIdInterceptor;
 import org.fasf.interceptor.encrypt.AESEncryptRequestInterceptor;
+import org.fasf.interceptor.encrypt.DESEncryptRequestInterceptor;
+import org.fasf.interceptor.encrypt.RSAEncryptRequestInterceptor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,23 +35,23 @@ public class FasfApiAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(HttpClient.class)
-    public HttpClient createHttpClient() {
+    public HttpClient createHttpClient(FasfApiProperties properties) {
         ConnectionProvider connectionProvider = ConnectionProvider.builder("fasf-connection-provider")
-                .maxConnections(1000)
-                .pendingAcquireTimeout(Duration.ofSeconds(10))
-                .pendingAcquireMaxCount(5000)
-                .maxIdleTime(Duration.ofSeconds(30))
-                .maxLifeTime(Duration.ofMinutes(5))
-                .evictInBackground(Duration.ofSeconds(10))
+                .maxConnections(properties.getConnectionProvider().getMaxConnections())
+                .pendingAcquireTimeout(Duration.ofSeconds(properties.getConnectionProvider().getPendingAcquireTimeout()))
+                .pendingAcquireMaxCount(properties.getConnectionProvider().getPendingAcquireMaxCount())
+                .maxIdleTime(Duration.ofSeconds(properties.getConnectionProvider().getMaxIdleTime()))
+                .maxLifeTime(Duration.ofMinutes(properties.getConnectionProvider().getMaxLifeTime()))
+                .evictInBackground(Duration.ofSeconds(properties.getConnectionProvider().getEvictInBackground()))
                 .build();
 
-        LoopResources loopResources = LoopResources.create("fasf-reactor-io", Math.min(4, Runtime.getRuntime().availableProcessors()), true);
+        LoopResources loopResources = LoopResources.create(properties.getLoopResources().getPrefix(), Math.min(properties.getLoopResources().getMinWorkerCount(), Runtime.getRuntime().availableProcessors()), true);
 
         reactor.netty.http.client.HttpClient httpClient = reactor.netty.http.client.HttpClient.create(connectionProvider)
                 .runOn(loopResources)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
-                .responseTimeout(Duration.ofSeconds(15))
-                .keepAlive(true);
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getHttpClient().getConnectTimeoutMillis())
+                .responseTimeout(Duration.ofSeconds(properties.getHttpClient().getResponseTimeout()))
+                .keepAlive(properties.getHttpClient().isKeepAlive());
 
         return new HttpClient.DefaultHttpClient(WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
@@ -58,21 +59,34 @@ public class FasfApiAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "fasf.api.encrypt.type", havingValue = "des")
+    public DESEncryptRequestInterceptor desEncryptRequestInterceptor() {
+        return new DESEncryptRequestInterceptor();
+    }
+
+
+    @Bean
+    @ConditionalOnProperty(name = "fasf.api.encrypt.type", havingValue = "aes")
     public AESEncryptRequestInterceptor aesEncryptRequestInterceptor() {
         return new AESEncryptRequestInterceptor();
     }
 
     @Bean
+    @ConditionalOnProperty(name = "fasf.api.encrypt.type", havingValue = "rsa")
+    public RSAEncryptRequestInterceptor rsaEncryptRequestInterceptor() {
+        return new RSAEncryptRequestInterceptor();
+    }
+
+
+    @Bean
+    @ConditionalOnProperty(name = "fasf.api.encrypt.type", havingValue = "aes")
     public AESResponseInterceptor aesResponseInterceptor() {
         return new AESResponseInterceptor();
     }
 
-    @Bean
-    public AuthorizationInterceptor authorizationInterceptor() {
-        return new AuthorizationInterceptor();
-    }
 
     @Bean
+    @ConditionalOnProperty(name = "fasf.api.traceId.name")
     public TraceIdInterceptor traceIdInterceptor() {
         return new TraceIdInterceptor();
     }
